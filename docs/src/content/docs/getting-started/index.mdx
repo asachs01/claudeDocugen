@@ -1,0 +1,63 @@
+---
+title: Quick Start
+description: Get started with DocuGen in under 5 minutes
+---
+
+import { Tabs, TabItem, Card, CardGrid } from '@astrojs/starlight/components';
+
+# Quick Start
+
+DocuGen transforms web workflows into professional documentation with annotated screenshots and contextual explanations.
+
+## Install in 30 seconds
+
+<Tabs>
+  <TabItem label="macOS / Linux">
+    ```bash
+    curl -fsSL https://raw.githubusercontent.com/asachs01/claudeDocugen/main/install.sh | bash
+    ```
+  </TabItem>
+  <TabItem label="Windows">
+    ```powershell
+    irm https://raw.githubusercontent.com/asachs01/claudeDocugen/main/install.ps1 | iex
+    ```
+  </TabItem>
+</Tabs>
+
+## Try it now
+
+In Claude Code or Claude.ai, say:
+
+```
+Document this workflow: Create a new GitHub repository
+Starting URL: https://github.com/new
+```
+
+DocuGen will:
+1. Navigate to the URL
+2. Guide you through recording actions
+3. Capture screenshots at each step
+4. Generate markdown with annotated images
+
+## What you get
+
+<CardGrid>
+  <Card title="Contextual explanations" icon="document">
+    Not just "click here" — DocuGen explains *why* each step matters
+  </Card>
+  <Card title="Annotated screenshots" icon="pencil">
+    Highlight boxes, arrows, and callouts automatically added
+  </Card>
+  <Card title="Professional structure" icon="list-format">
+    Prerequisites, steps, expected results, and troubleshooting
+  </Card>
+  <Card title="Audience adaptation" icon="group">
+    Adjust detail level for beginners, intermediate, or expert users
+  </Card>
+</CardGrid>
+
+## Next steps
+
+- [Installation details](/claudeDocugen/getting-started/installation) — Requirements and options
+- [Your first workflow](/claudeDocugen/getting-started/first-workflow) — Step-by-step tutorial
+- [Recording guide](/claudeDocugen/guides/recording) — Master the recording process
