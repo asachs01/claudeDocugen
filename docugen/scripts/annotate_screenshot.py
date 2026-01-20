@@ -24,9 +24,10 @@ Dependencies:
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Dict, Any
 
 try:
     from PIL import Image, ImageDraw, ImageFont, ImageFilter
@@ -46,6 +47,71 @@ DEFAULT_STYLES = {
     'callout_size': 24,
     'blur_strength': 15
 }
+
+# Patterns for detecting sensitive fields (FR-2.5)
+SENSITIVE_PATTERNS = {
+    'password': re.compile(r'password|passwd|pwd|secret', re.IGNORECASE),
+    'ssn': re.compile(r'ssn|social.?security|tax.?id', re.IGNORECASE),
+    'credit_card': re.compile(r'credit.?card|card.?number|cvv|cvc|expir', re.IGNORECASE),
+    'api_key': re.compile(r'api.?key|access.?token|secret.?key|auth.?token', re.IGNORECASE),
+    'email': re.compile(r'email|e-mail', re.IGNORECASE),
+    'phone': re.compile(r'phone|tel|mobile', re.IGNORECASE),
+}
+
+
+def detect_sensitive_fields(elements: List[Dict[str, Any]]) -> List[Tuple[int, int, int, int]]:
+    """
+    Detect sensitive fields from element metadata and return their bounding boxes.
+
+    Args:
+        elements: List of element metadata dicts with keys:
+            - selector: CSS selector
+            - text: Visible text
+            - ariaLabel: ARIA label
+            - inputType: Input type attribute (e.g., 'password')
+            - boundingBox: {x, y, width, height}
+
+    Returns:
+        List of (x, y, width, height) tuples for regions to blur
+    """
+    blur_regions = []
+
+    for elem in elements:
+        is_sensitive = False
+
+        # Check input type
+        input_type = elem.get('inputType', '').lower()
+        if input_type in ('password', 'hidden'):
+            is_sensitive = True
+
+        # Check selector, text, and aria label against patterns
+        check_fields = [
+            elem.get('selector', ''),
+            elem.get('text', ''),
+            elem.get('ariaLabel', ''),
+            elem.get('placeholder', ''),
+            elem.get('name', ''),
+            elem.get('id', ''),
+        ]
+
+        for field in check_fields:
+            if not field:
+                continue
+            for pattern_name, pattern in SENSITIVE_PATTERNS.items():
+                if pattern.search(field):
+                    is_sensitive = True
+                    break
+
+        if is_sensitive and 'boundingBox' in elem:
+            bbox = elem['boundingBox']
+            blur_regions.append((
+                int(bbox.get('x', 0)),
+                int(bbox.get('y', 0)),
+                int(bbox.get('width', 0)),
+                int(bbox.get('height', 0))
+            ))
+
+    return blur_regions
 
 
 def load_styles(style_path: Optional[Path]) -> dict:
@@ -205,6 +271,16 @@ def main():
     parser.add_argument('--callout', action='append', help='Callout: x,y,number')
     parser.add_argument('--blur', action='append', help='Blur region: x,y,w,h')
     parser.add_argument('--style', type=Path, help='Custom style JSON file')
+    parser.add_argument(
+        '--elements',
+        type=Path,
+        help='JSON file with element metadata for auto-blur detection (FR-2.5)'
+    )
+    parser.add_argument(
+        '--auto-blur',
+        action='store_true',
+        help='Auto-detect and blur sensitive fields (requires --elements)'
+    )
 
     args = parser.parse_args()
 
@@ -221,7 +297,28 @@ def main():
     img = Image.open(args.input).convert('RGBA')
     draw = ImageDraw.Draw(img)
 
-    # Apply blur regions first (before other annotations)
+    # Auto-detect sensitive fields if requested (FR-2.5)
+    auto_blur_regions = []
+    if args.auto_blur and args.elements:
+        if args.elements.exists():
+            with open(args.elements) as f:
+                elements_data = json.load(f)
+                # Handle both list of elements or dict with 'elements' key
+                if isinstance(elements_data, list):
+                    elements = elements_data
+                else:
+                    elements = elements_data.get('elements', [])
+                auto_blur_regions = detect_sensitive_fields(elements)
+                print(f"Auto-detected {len(auto_blur_regions)} sensitive field(s) to blur")
+        else:
+            print(f"Warning: Elements file not found: {args.elements}", file=sys.stderr)
+
+    # Apply auto-detected blur regions
+    for coords in auto_blur_regions:
+        img = blur_region(img, coords, styles)
+        draw = ImageDraw.Draw(img)
+
+    # Apply manual blur regions (before other annotations)
     if args.blur:
         for blur_spec in args.blur:
             coords = parse_coords(blur_spec)
