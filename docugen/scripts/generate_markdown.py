@@ -36,9 +36,11 @@ Dependencies:
 """
 
 import argparse
+import base64
 import json
 import re
 import sys
+import zipfile
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from datetime import datetime
@@ -49,6 +51,98 @@ try:
     JINJA2_AVAILABLE = True
 except ImportError:
     JINJA2_AVAILABLE = False
+
+
+def encode_image_base64(image_path: Path) -> str:
+    """
+    Encode an image file as base64 data URI for embedding (FR-3.6).
+
+    Args:
+        image_path: Path to image file
+
+    Returns:
+        Base64 data URI string (e.g., "data:image/png;base64,...")
+    """
+    if not image_path.exists():
+        return str(image_path)  # Return original path if file not found
+
+    suffix = image_path.suffix.lower()
+    mime_types = {
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp',
+    }
+    mime_type = mime_types.get(suffix, 'image/png')
+
+    with open(image_path, 'rb') as f:
+        encoded = base64.b64encode(f.read()).decode('utf-8')
+
+    return f"data:{mime_type};base64,{encoded}"
+
+
+def generate_toc(sections: List[Dict[str, Any]], min_steps: int = 5) -> str:
+    """
+    Generate table of contents for multi-section documents (FR-4.3).
+
+    Args:
+        sections: List of section dicts with 'title' and 'level' keys
+        min_steps: Minimum steps to include TOC (default 5)
+
+    Returns:
+        Markdown TOC string, or empty string if below threshold
+    """
+    if len(sections) < min_steps:
+        return ""
+
+    lines = ["## Table of Contents", ""]
+    for section in sections:
+        title = section['title']
+        level = section.get('level', 2)
+        anchor = slugify(title)
+        indent = "  " * (level - 2) if level > 2 else ""
+        lines.append(f"{indent}- [{title}](#{anchor})")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def create_zip_package(
+    output_dir: Path,
+    markdown_file: Path,
+    image_dir: Path,
+    zip_name: str = None
+) -> Path:
+    """
+    Create a zip package containing markdown and images.
+
+    Args:
+        output_dir: Directory to save zip file
+        markdown_file: Path to markdown file
+        image_dir: Directory containing images
+        zip_name: Name for zip file (default: based on markdown filename)
+
+    Returns:
+        Path to created zip file
+    """
+    if zip_name is None:
+        zip_name = markdown_file.stem + "_documentation.zip"
+
+    zip_path = output_dir / zip_name
+
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+        # Add markdown file
+        if markdown_file.exists():
+            zf.write(markdown_file, markdown_file.name)
+
+        # Add images
+        if image_dir.exists() and image_dir.is_dir():
+            for img_file in image_dir.iterdir():
+                if img_file.is_file() and img_file.suffix.lower() in {'.png', '.jpg', '.jpeg', '.gif'}:
+                    arcname = f"images/{img_file.name}"
+                    zf.write(img_file, arcname)
+
+    return zip_path
 
 
 def slugify(text: str) -> str:
@@ -167,8 +261,21 @@ def generate_prerequisites_section(prerequisites: List[str]) -> str:
     return "\n".join(lines)
 
 
-def generate_step_section(step: Dict[str, Any], image_dir: str = './images') -> str:
-    """Generate markdown for a single step with WCAG-compliant alt text."""
+def generate_step_section(
+    step: Dict[str, Any],
+    image_dir: str = './images',
+    embed_images: bool = False,
+    base_path: Path = None
+) -> str:
+    """
+    Generate markdown for a single step with WCAG-compliant alt text.
+
+    Args:
+        step: Step data dictionary
+        image_dir: Relative path to images directory
+        embed_images: If True, embed images as base64 (FR-3.6)
+        base_path: Base path for resolving image files when embedding
+    """
     lines = [
         f"### Step {step['number']}: {step['title']}",
         "",
@@ -177,7 +284,6 @@ def generate_step_section(step: Dict[str, Any], image_dir: str = './images') -> 
     ]
 
     if step.get('screenshot'):
-        # Use provided screenshot path or generate one
         screenshot_path = step['screenshot']
         # Generate proper alt text for accessibility (WCAG compliance)
         alt_text = generate_alt_text(
@@ -185,7 +291,19 @@ def generate_step_section(step: Dict[str, Any], image_dir: str = './images') -> 
             step['title'],
             step.get('action')
         )
-        lines.append(f"![{alt_text}]({screenshot_path})")
+
+        # Handle base64 embedding
+        if embed_images and base_path:
+            # Resolve the actual file path
+            if screenshot_path.startswith('./'):
+                actual_path = base_path / screenshot_path[2:]
+            else:
+                actual_path = base_path / screenshot_path
+            screenshot_src = encode_image_base64(actual_path)
+        else:
+            screenshot_src = screenshot_path
+
+        lines.append(f"![{alt_text}]({screenshot_src})")
         lines.append("")
 
     if step.get('expected_result'):
@@ -212,21 +330,49 @@ def generate_troubleshooting_section(issues: List[Dict[str, str]]) -> str:
     return "\n".join(lines)
 
 
-def generate_walkthrough(data: Dict[str, Any]) -> str:
+def generate_walkthrough(
+    data: Dict[str, Any],
+    embed_images: bool = False,
+    base_path: Path = None,
+    include_toc: bool = True
+) -> str:
     """
     Generate a complete walkthrough document from workflow data.
 
     Args:
         data: Workflow data dictionary
+        embed_images: If True, embed images as base64 (FR-3.6)
+        base_path: Base path for resolving image files when embedding
+        include_toc: If True, include table of contents for 5+ steps (FR-4.3)
 
     Returns:
         Complete markdown document string
     """
     sections = []
+    toc_sections = []
 
     # Title
     sections.append(f"# {data['title']}")
     sections.append("")
+
+    # Build TOC entries
+    if data.get('description'):
+        toc_sections.append({'title': 'Overview', 'level': 2})
+    if data.get('prerequisites'):
+        toc_sections.append({'title': 'Prerequisites', 'level': 2})
+    toc_sections.append({'title': 'Steps', 'level': 2})
+    for step in data.get('steps', []):
+        toc_sections.append({
+            'title': f"Step {step['number']}: {step['title']}",
+            'level': 3
+        })
+    if data.get('troubleshooting'):
+        toc_sections.append({'title': 'Troubleshooting', 'level': 2})
+
+    # Include TOC if enough sections (FR-4.3)
+    steps_count = len(data.get('steps', []))
+    if include_toc and steps_count >= 5:
+        sections.append(generate_toc(toc_sections, min_steps=5))
 
     # Overview
     if data.get('description'):
@@ -245,7 +391,11 @@ def generate_walkthrough(data: Dict[str, Any]) -> str:
     sections.append("")
 
     for step in data.get('steps', []):
-        sections.append(generate_step_section(step))
+        sections.append(generate_step_section(
+            step,
+            embed_images=embed_images,
+            base_path=base_path
+        ))
 
     # Troubleshooting
     troubleshooting = generate_troubleshooting_section(data.get('troubleshooting', []))
@@ -316,6 +466,21 @@ def main():
         default='./images',
         help='Relative path to images directory in output'
     )
+    parser.add_argument(
+        '--embed-images',
+        action='store_true',
+        help='Embed images as base64 data URIs (FR-3.6)'
+    )
+    parser.add_argument(
+        '--no-toc',
+        action='store_true',
+        help='Disable table of contents generation'
+    )
+    parser.add_argument(
+        '--zip',
+        action='store_true',
+        help='Create a zip package with markdown and images'
+    )
 
     args = parser.parse_args()
 
@@ -331,6 +496,9 @@ def main():
             # Generate screenshot filename if not provided
             step['screenshot'] = f"{args.image_dir}/{generate_image_filename(step['number'], step['title'])}"
 
+    # Determine base path for image embedding
+    base_path = args.output.parent if args.embed_images else None
+
     # Use Jinja2 templating if requested
     if args.jinja2:
         if not JINJA2_AVAILABLE:
@@ -345,12 +513,22 @@ def main():
         output = render_with_jinja2(template_path, data)
     # Generate based on template type (built-in generation)
     elif args.template == 'walkthrough':
-        output = generate_walkthrough(data)
+        output = generate_walkthrough(
+            data,
+            embed_images=args.embed_images,
+            base_path=base_path,
+            include_toc=not args.no_toc
+        )
     elif args.template == 'quick_reference':
         output = generate_quick_reference(data)
     elif args.template == 'tutorial':
         # Tutorial template is similar to walkthrough but with learning objectives
-        output = generate_walkthrough(data)  # TODO: Implement tutorial-specific generation
+        output = generate_walkthrough(
+            data,
+            embed_images=args.embed_images,
+            base_path=base_path,
+            include_toc=not args.no_toc
+        )
     else:
         print(f"Error: Unknown template: {args.template}", file=sys.stderr)
         sys.exit(2)
@@ -359,6 +537,16 @@ def main():
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(output)
     print(f"Documentation generated: {args.output}")
+
+    # Create zip package if requested
+    if args.zip:
+        image_dir = args.output.parent / args.image_dir.lstrip('./')
+        zip_path = create_zip_package(
+            args.output.parent,
+            args.output,
+            image_dir
+        )
+        print(f"Zip package created: {zip_path}")
 
 
 if __name__ == '__main__':

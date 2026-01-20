@@ -98,6 +98,84 @@ Load references as needed:
 - `references/annotation_conventions.md` - During Phase 3 processing
 - `references/troubleshooting_patterns.md` - For troubleshooting section
 
+## Contextual Description Generation (FR-3.2, US-2)
+
+During Phase 4, analyze the captured workflow data to generate contextual descriptions that explain
+**why** each step matters, not just what to do.
+
+### Semantic Analysis Process
+
+For each recorded step, analyze:
+
+1. **Workflow Context**: The overall goal described by the user
+2. **DOM Metadata**: Element text, ARIA labels, and semantic roles
+3. **Step Sequence**: Position in workflow and relationship to adjacent steps
+4. **Visual Changes**: What changed between before/after screenshots
+
+### Description Generation Rules
+
+Apply `references/writing_style_guide.md` and generate:
+
+1. **Purpose Statement**: Why this action is necessary
+   - Connect action to workflow goal
+   - Explain what capability or state this enables
+   - Example: "Access the project settings to configure team permissions"
+
+2. **Action Description**: What to do (imperative, ≤25 words)
+   - Use element text/label for specificity
+   - Include location hints from DOM structure
+   - Example: "Click **Settings** in the left sidebar menu"
+
+3. **Expected Result**: What user should observe
+   - Describe visible confirmation of success
+   - Use present tense
+   - Example: "The Settings panel opens with the General tab selected"
+
+### Output Format
+
+Generate enriched step data as JSON:
+
+```json
+{
+  "step": 1,
+  "action": "click",
+  "elementText": "New Project",
+  "context": "Creates a new project workspace to organize your team's work",
+  "description": "Click **New Project** in the top navigation bar to start creating your project.",
+  "expected": "The New Project dialog appears with fields for project name and description.",
+  "prerequisites_detected": ["Logged into account", "On dashboard page"]
+}
+```
+
+### Prerequisites Auto-Detection
+
+Analyze the workflow to automatically detect prerequisites:
+
+| Pattern | Detected Prerequisite |
+|---------|----------------------|
+| Login page in first steps | "Active user account" |
+| Navigation from dashboard | "Logged into the application" |
+| Specific URL patterns | "Access to [feature name]" |
+| Role-specific UI elements | "Appropriate permissions" |
+| Form pre-filled data | "Required information prepared" |
+
+### Context Inference Examples
+
+| Element Metadata | Generated Context |
+|-----------------|-------------------|
+| `button#submit-form, "Submit"` | "Submits the completed form for processing" |
+| `a[href="/settings"], "Settings"` | "Opens application settings to customize your experience" |
+| `input[type="search"], placeholder="Search..."` | "Filters results to find specific items quickly" |
+| `button.delete, "Delete"` | "Permanently removes the selected item" |
+| `nav > a, "Dashboard"` | "Returns to the main overview of your workspace" |
+
+### Quality Guidelines
+
+- **Avoid generic phrases**: Don't write "Click the button" - specify which button and why
+- **Connect to user goals**: Each step should relate to the workflow objective
+- **Be specific about outcomes**: "The modal closes" vs "The save is confirmed"
+- **Match audience level**: Adjust verbosity based on `beginner|intermediate|expert`
+
 ## Output Structure
 
 Generated documentation follows this structure:
@@ -139,6 +217,142 @@ Generated documentation follows this structure:
 - `imageFormat`: png (default), jpg
 - `embedImages`: false (file references) or true (base64)
 - `includeTableOfContents`: true for 5+ steps
+
+## Audience Adaptation (US-4)
+
+Adjust documentation detail and tone based on the target audience level.
+
+### Beginner Level (`audience=beginner`)
+
+Generate documentation with:
+- **Full context**: Explain why each step is necessary and what it accomplishes
+- **Detailed warnings**: Include caution notes for irreversible actions
+- **Navigation hints**: Describe where to find elements on screen
+- **Terminology explanations**: Define any technical terms
+- **Expected results**: Detailed descriptions of what should happen
+
+**Example step (beginner):**
+```markdown
+### Step 3: Save your project
+
+Before you can share your project with others, you need to save it first.
+This ensures all your changes are stored and creates a link you can share.
+
+> **Note:** Saving cannot be undone. Make sure you're happy with your
+> project name before proceeding.
+
+Click the **Save** button (the blue button with a disk icon) in the top-right
+corner of the screen.
+
+**Expected result:** A green "Saved successfully!" message appears briefly,
+and the URL in your browser's address bar changes to include your project ID.
+```
+
+### Intermediate Level (`audience=intermediate`)
+
+Generate documentation with:
+- **Standard context**: Brief explanation of step purpose
+- **Key warnings only**: Only critical cautions
+- **Concise expected results**: What confirms success
+
+**Example step (intermediate):**
+```markdown
+### Step 3: Save your project
+
+Click **Save** in the top-right corner to store your changes.
+
+> **Warning:** This action cannot be undone.
+
+**Expected result:** "Saved successfully!" confirmation appears.
+```
+
+### Expert Level (`audience=expert`)
+
+Generate documentation with:
+- **Minimal context**: Just the action
+- **No warnings**: Unless absolutely critical
+- **Brief expected results**: Single sentence or omitted
+
+**Example step (expert):**
+```markdown
+### Step 3: Save your project
+
+Click **Save**. Confirmation message confirms success.
+```
+
+### Adaptation Matrix
+
+| Aspect | Beginner | Intermediate | Expert |
+|--------|----------|--------------|--------|
+| Step length | 50-100 words | 25-50 words | 10-25 words |
+| Context | Full explanation | Brief purpose | Omit |
+| Warnings | All applicable | Critical only | Rare |
+| Screenshots | Every step | Key steps | Minimal |
+| Navigation hints | Detailed | Brief | Omit |
+| Terminology | Defined | Assumed known | Assumed known |
+
+## Troubleshooting Generation (FR-3.7)
+
+Automatically generate a troubleshooting section based on workflow analysis.
+Reference `references/troubleshooting_patterns.md` for templates.
+
+### Workflow Type Detection
+
+Analyze the recorded workflow to identify type and generate relevant issues:
+
+| Workflow Pattern | Troubleshooting Focus |
+|-----------------|----------------------|
+| Login/authentication | Session expired, invalid credentials, 2FA issues |
+| Form submission | Validation errors, required fields, format issues |
+| File upload | Size limits, format restrictions, upload failures |
+| Search/filter | No results, too many results, filter confusion |
+| Settings/configuration | Permission denied, changes not saving |
+| Data creation | Naming conflicts, duplicate entries |
+| Navigation | Page not found, access denied |
+
+### Auto-Detection Rules
+
+Based on captured UI elements, automatically detect applicable issues:
+
+```json
+{
+  "detected_patterns": [
+    {"pattern": "input[type='password']", "issue": "authentication"},
+    {"pattern": "input[type='file']", "issue": "file_upload"},
+    {"pattern": "form[action]", "issue": "form_submission"},
+    {"pattern": ".search-input", "issue": "search_results"},
+    {"pattern": "button:disabled", "issue": "permissions"}
+  ]
+}
+```
+
+### Troubleshooting Output Format
+
+Generate 2-3 relevant issues per workflow:
+
+```markdown
+## Troubleshooting
+
+**Form submission fails without error message**
+1. Check all required fields are completed (marked with *)
+2. Verify email and phone fields are in correct format
+3. Scroll up to check for error messages at the top of the form
+
+**"Invalid input" error on project name**
+Project names can only contain letters, numbers, and hyphens. Remove any
+special characters or spaces and try again.
+
+**Save button is disabled**
+This indicates you may not have edit permissions for this project. Contact
+your organization administrator to request Editor access.
+```
+
+### Issue Priority
+
+Select troubleshooting issues in this priority:
+1. **Highly likely**: Issues directly related to recorded workflow
+2. **Commonly encountered**: General issues for this workflow type
+3. **Edge cases**: Only if space permits
 
 ## Playwright MCP Integration
 
