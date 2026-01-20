@@ -37,10 +37,70 @@ Dependencies:
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from datetime import datetime
+
+# Try to import Jinja2 for advanced templating
+try:
+    from jinja2 import Environment, FileSystemLoader, select_autoescape
+    JINJA2_AVAILABLE = True
+except ImportError:
+    JINJA2_AVAILABLE = False
+
+
+def slugify(text: str) -> str:
+    """
+    Convert text to URL-friendly slug for image naming.
+
+    Args:
+        text: Text to convert
+
+    Returns:
+        Lowercase slug with hyphens (e.g., "Click Submit Button" -> "click-submit-button")
+    """
+    # Convert to lowercase
+    text = text.lower()
+    # Replace spaces and underscores with hyphens
+    text = re.sub(r'[\s_]+', '-', text)
+    # Remove non-alphanumeric characters except hyphens
+    text = re.sub(r'[^a-z0-9-]', '', text)
+    # Remove multiple consecutive hyphens
+    text = re.sub(r'-+', '-', text)
+    # Remove leading/trailing hyphens
+    text = text.strip('-')
+    # Limit length
+    return text[:50]
+
+
+def generate_image_filename(step_number: int, title: str, extension: str = 'png') -> str:
+    """
+    Generate consistent image filename for a step.
+
+    Format: step-{nn}-{description_slug}.{ext}
+    Example: step-01-click-submit-button.png
+    """
+    slug = slugify(title)
+    return f"step-{step_number:02d}-{slug}.{extension}"
+
+
+def generate_alt_text(step_number: int, title: str, action: str = None) -> str:
+    """
+    Generate WCAG-compliant alt text for screenshot.
+
+    Args:
+        step_number: Step number
+        title: Step title
+        action: Optional action description
+
+    Returns:
+        Descriptive alt text for accessibility
+    """
+    if action:
+        return f"Step {step_number}: {title} - {action}"
+    return f"Step {step_number}: {title}"
 
 
 def load_workflow_data(data_path: Path) -> Dict[str, Any]:
@@ -57,6 +117,44 @@ def load_template(template_name: str, template_dir: Path) -> Optional[str]:
     return None
 
 
+def render_with_jinja2(template_path: Path, data: Dict[str, Any]) -> str:
+    """
+    Render a template using Jinja2.
+
+    Args:
+        template_path: Path to template file
+        data: Data to pass to template
+
+    Returns:
+        Rendered markdown string
+    """
+    if not JINJA2_AVAILABLE:
+        raise ImportError("Jinja2 is required for template rendering. Install with: pip install jinja2")
+
+    template_dir = template_path.parent
+    template_name = template_path.name
+
+    env = Environment(
+        loader=FileSystemLoader(str(template_dir)),
+        autoescape=select_autoescape(['html', 'xml']),
+        trim_blocks=True,
+        lstrip_blocks=True
+    )
+
+    # Add custom filters
+    env.filters['slugify'] = slugify
+    env.filters['generate_image_filename'] = lambda s, n: generate_image_filename(n, s)
+    env.filters['generate_alt_text'] = lambda s, n: generate_alt_text(n, s)
+
+    template = env.get_template(template_name)
+
+    # Add utility data
+    data['generated_date'] = datetime.now().strftime('%Y-%m-%d')
+    data['generated_timestamp'] = datetime.now().isoformat()
+
+    return template.render(**data)
+
+
 def generate_prerequisites_section(prerequisites: List[str]) -> str:
     """Generate the prerequisites section."""
     if not prerequisites:
@@ -69,8 +167,8 @@ def generate_prerequisites_section(prerequisites: List[str]) -> str:
     return "\n".join(lines)
 
 
-def generate_step_section(step: Dict[str, Any]) -> str:
-    """Generate markdown for a single step."""
+def generate_step_section(step: Dict[str, Any], image_dir: str = './images') -> str:
+    """Generate markdown for a single step with WCAG-compliant alt text."""
     lines = [
         f"### Step {step['number']}: {step['title']}",
         "",
@@ -79,8 +177,15 @@ def generate_step_section(step: Dict[str, Any]) -> str:
     ]
 
     if step.get('screenshot'):
-        alt_text = f"Step {step['number']}: {step['title']}"
-        lines.append(f"![{alt_text}]({step['screenshot']})")
+        # Use provided screenshot path or generate one
+        screenshot_path = step['screenshot']
+        # Generate proper alt text for accessibility (WCAG compliance)
+        alt_text = generate_alt_text(
+            step['number'],
+            step['title'],
+            step.get('action')
+        )
+        lines.append(f"![{alt_text}]({screenshot_path})")
         lines.append("")
 
     if step.get('expected_result'):
@@ -200,6 +305,17 @@ def main():
         default=Path(__file__).parent.parent / 'templates',
         help='Directory containing template files'
     )
+    parser.add_argument(
+        '--jinja2',
+        action='store_true',
+        help='Use Jinja2 templating engine for advanced templates'
+    )
+    parser.add_argument(
+        '--image-dir',
+        type=str,
+        default='./images',
+        help='Relative path to images directory in output'
+    )
 
     args = parser.parse_args()
 
@@ -209,8 +325,26 @@ def main():
 
     data = load_workflow_data(args.input)
 
-    # Generate based on template type
-    if args.template == 'walkthrough':
+    # Process steps to ensure proper image paths
+    for step in data.get('steps', []):
+        if not step.get('screenshot'):
+            # Generate screenshot filename if not provided
+            step['screenshot'] = f"{args.image_dir}/{generate_image_filename(step['number'], step['title'])}"
+
+    # Use Jinja2 templating if requested
+    if args.jinja2:
+        if not JINJA2_AVAILABLE:
+            print("Error: Jinja2 not installed. Run: pip install jinja2", file=sys.stderr)
+            sys.exit(2)
+
+        template_path = args.template_dir / f"{args.template}.md"
+        if not template_path.exists():
+            print(f"Error: Template not found: {template_path}", file=sys.stderr)
+            sys.exit(2)
+
+        output = render_with_jinja2(template_path, data)
+    # Generate based on template type (built-in generation)
+    elif args.template == 'walkthrough':
         output = generate_walkthrough(data)
     elif args.template == 'quick_reference':
         output = generate_quick_reference(data)
