@@ -15,8 +15,11 @@ Options:
     --box x,y,w,h          Draw highlight box at coordinates
     --arrow x1,y1,x2,y2    Draw arrow from (x1,y1) to (x2,y2)
     --callout x,y,number   Add numbered callout at position
+    --click x,y[,type]     Draw click indicator (type: single/double/right)
     --blur x,y,w,h         Blur region (for sensitive data)
     --style <style_file>   Load custom styles from JSON
+    --elements <json>      Element metadata for auto-blur detection
+    --auto-blur            Auto-detect and blur sensitive fields
 
 Dependencies:
     - PIL/Pillow
@@ -45,7 +48,13 @@ DEFAULT_STYLES = {
     'callout_bg_color': (255, 87, 51),          # Orange-red
     'callout_text_color': (255, 255, 255),      # White
     'callout_size': 24,
-    'blur_strength': 15
+    'blur_strength': 15,
+    # Click indicator styles (like Scribe/CleanShot)
+    'click_color': (255, 87, 51),               # Orange-red
+    'click_inner_radius': 8,                     # Inner circle radius
+    'click_outer_radius': 20,                    # Outer ripple radius
+    'click_ring_width': 2,                       # Ring stroke width
+    'click_opacity': 200,                        # 0-255
 }
 
 # Patterns for detecting sensitive fields (FR-2.5)
@@ -255,6 +264,70 @@ def blur_region(
     return img
 
 
+def draw_click_indicator(
+    img: Image.Image,
+    draw: ImageDraw.Draw,
+    position: Tuple[int, int],
+    styles: dict,
+    click_type: str = 'single'
+) -> None:
+    """
+    Draw a click indicator (ripple effect) at the specified position.
+    Similar to Scribe/CleanShot click visualization.
+
+    Args:
+        img: PIL Image object
+        draw: PIL ImageDraw object
+        position: (x, y) center of click
+        styles: Style configuration dict
+        click_type: 'single', 'double', or 'right' for different styles
+    """
+    x, y = position
+    color = styles.get('click_color', (255, 87, 51))
+    inner_r = styles.get('click_inner_radius', 8)
+    outer_r = styles.get('click_outer_radius', 20)
+    ring_width = styles.get('click_ring_width', 2)
+    opacity = styles.get('click_opacity', 200)
+
+    # Create color with opacity
+    if len(color) == 3:
+        fill_color = (*color, opacity)
+        ring_color = (*color, opacity // 2)
+    else:
+        fill_color = color
+        ring_color = (*color[:3], color[3] // 2)
+
+    # Draw outer ring (ripple effect)
+    draw.ellipse(
+        [x - outer_r, y - outer_r, x + outer_r, y + outer_r],
+        outline=ring_color[:3],
+        width=ring_width
+    )
+
+    # Draw middle ring for double-click
+    if click_type == 'double':
+        mid_r = (inner_r + outer_r) // 2
+        draw.ellipse(
+            [x - mid_r, y - mid_r, x + mid_r, y + mid_r],
+            outline=ring_color[:3],
+            width=ring_width
+        )
+
+    # Draw inner filled circle
+    draw.ellipse(
+        [x - inner_r, y - inner_r, x + inner_r, y + inner_r],
+        fill=fill_color[:3]
+    )
+
+    # For right-click, add a small "R" indicator
+    if click_type == 'right':
+        try:
+            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 10)
+        except OSError:
+            font = ImageFont.load_default()
+        draw.text((x + inner_r + 2, y - 6), "R", fill=color[:3], font=font)
+
+
 def parse_coords(coord_str: str) -> Tuple[int, ...]:
     """Parse comma-separated coordinates string."""
     return tuple(int(x.strip()) for x in coord_str.split(','))
@@ -270,6 +343,11 @@ def main():
     parser.add_argument('--arrow', action='append', help='Arrow: x1,y1,x2,y2')
     parser.add_argument('--callout', action='append', help='Callout: x,y,number')
     parser.add_argument('--blur', action='append', help='Blur region: x,y,w,h')
+    parser.add_argument(
+        '--click',
+        action='append',
+        help='Click indicator: x,y[,type] where type is single/double/right (default: single)'
+    )
     parser.add_argument('--style', type=Path, help='Custom style JSON file')
     parser.add_argument(
         '--elements',
@@ -346,6 +424,14 @@ def main():
             x, y = int(parts[0]), int(parts[1])
             number = int(parts[2])
             draw_callout(img, draw, (x, y), number, styles)
+
+    # Draw click indicators (like Scribe/CleanShot)
+    if args.click:
+        for click_spec in args.click:
+            parts = click_spec.split(',')
+            x, y = int(parts[0]), int(parts[1])
+            click_type = parts[2] if len(parts) > 2 else 'single'
+            draw_click_indicator(img, draw, (x, y), styles, click_type)
 
     # Save output
     args.output.parent.mkdir(parents=True, exist_ok=True)
