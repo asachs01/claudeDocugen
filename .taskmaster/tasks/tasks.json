@@ -2,142 +2,147 @@
   "master": {
     "tasks": [
       {
-        "id": 11,
+        "id": "11",
         "title": "Initialize DocuGen skill directory structure and create SKILL.md",
         "description": "Set up the complete file structure as specified in the PRD and implement core SKILL.md with workflow orchestration instructions and trigger keywords.",
         "details": "Create directory structure: docugen/ with scripts/, references/, templates/, assets/. Implement SKILL.md with natural language triggers like 'document this workflow', progressive disclosure for references, and core workflow: 1) user provides URL/workflow description, 2) initiate Playwright MCP recording, 3) process via Python scripts, 4) generate markdown. Include Phase 1 checklist items.",
         "testStrategy": "Validate directory structure matches PRD architecture diagram. Test SKILL.md by triggering with sample commands in Claude.ai and verify workflow orchestration initiates correctly.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
-        "subtasks": []
+        "status": "in-progress",
+        "subtasks": [],
+        "updatedAt": "2026-01-20T21:04:41.715Z"
       },
       {
-        "id": 12,
+        "id": "12",
         "title": "Implement detect_step.py with SSIM step boundary detection",
         "description": "Create Python script for SSIM visual comparison to detect meaningful step boundaries using threshold < 0.90 as specified in FR-1.4.",
         "details": "Use scikit-image for SSIM calculation: pip install scikit-image. Implement compare_images(current_screenshot, previous_screenshot) returning True if SSIM < 0.90. Track screenshot history in session state. Handle edge cases: initial screenshot, rapid changes. Configurable threshold via environment variable SSIM_THRESHOLD=0.90. Output JSON with step timestamps and change confidence.",
         "testStrategy": "Unit test with synthetic screenshot pairs (hover vs real change). Integration test with 5-step workflow recording verifying >95% step detection accuracy against manual annotation.",
         "priority": "high",
         "dependencies": [
-          11
+          "11"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 13,
+        "id": "13",
         "title": "Implement basic Playwright MCP integration for workflow recording",
         "description": "Enable web navigation and action capture via Playwright MCP (FR-1.2) with DOM event tracking and screenshot capture (FR-1.3).",
         "details": "In SKILL.md, implement instructions for Playwright MCP browser launch with viewport capture. Track MutationObserver events for dynamic content (FR-1.5). Capture element metadata: selector, text, ARIA labels (FR-1.6). Store session data as JSON: [{'step':1, 'action':'click', 'selector':'button#submit', 'screenshot':'step1.png', 'timestamp':...}]. Screenshot at native resolution (<200ms target).",
         "testStrategy": "Test end-to-end recording of 5-step login workflow. Verify all DOM events captured, screenshots timestamped correctly, metadata complete.",
         "priority": "high",
         "dependencies": [
-          11
+          "11"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 14,
+        "id": "14",
         "title": "Create annotate_screenshot.py with highlight boxes and arrows",
         "description": "Implement PIL-based screenshot annotation for clicked elements with boxes and arrows (FR-2.2, FR-2.4).",
         "details": "Use Pillow: from PIL import Image, ImageDraw. Input: screenshot_path, element_coords (x1,y1,x2,y2 from DOM). Draw red highlight box (3px stroke), arrow from click point to element center using annotation_styles.json colors. Add step number callout (FR-2.3). Output annotated PNG <200KB via compression. Auto-detect sensitive fields for blurring (FR-2.5): regex for password, SSN patterns.",
         "testStrategy": "Visual validation: annotate sample screenshots, verify box/arrow placement accuracy >90%, file size <200KB, sensitive data blurred.",
         "priority": "high",
         "dependencies": [
-          12,
-          13
+          "12",
+          "13"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 15,
+        "id": "15",
         "title": "Implement generate_markdown.py with default walkthrough template",
         "description": "Create template-based markdown assembly using walkthrough.md template (FR-3.1, FR-3.3).",
         "details": "Jinja2 templating: render template with session_data JSON. Structure: Overview, Prerequisites (FR-3.4), Steps with annotated images + expected results (FR-3.5), Troubleshooting stub. Use relative image paths: ![Step 1](./images/step-01.png). Consistent naming: step-{step_num:02d}-{description_slug}.png. Include alt text for WCAG compliance.",
         "testStrategy": "Generate markdown from sample session data. Validate: proper markdown syntax, all images referenced, Flesch-Kincaid grade 7-8, step length ≤25 words.",
         "priority": "high",
         "dependencies": [
-          14
+          "14"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 16,
+        "id": "16",
         "title": "Create core reference documents and default templates",
         "description": "Implement references/writing_style_guide.md, annotation_conventions.md and templates/walkthrough.md, quick_reference.md.",
         "details": "writing_style_guide.md: imperative verbs, active voice, ≤25 words/step, expected results format. annotation_conventions.md: red boxes=primary action, blue=related, arrow specs. templates/: walkthrough.md with PRD sample structure, quick_reference.md (condensed), tutorial.md (pedagogical).",
         "testStrategy": "Validate templates render correctly with sample data. Check style guide compliance in generated output via readability analysis.",
         "priority": "medium",
         "dependencies": [
-          11,
-          15
+          "11",
+          "15"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 17,
+        "id": "17",
         "title": "Add contextual description generation and prerequisites detection",
         "description": "Enhance SKILL.md with Claude instructions for semantic analysis producing contextual step descriptions (FR-3.2, US-2).",
         "details": "In SKILL.md: Analyze workflow description + DOM metadata + step sequence to generate: 1) purpose of each action, 2) auto-detect prerequisites from initial navigation/login, 3) expected results phrasing. Use writing_style_guide.md as reference. Output format: {'step':1, 'action':'click Projects', 'context':'Accesses project management area', 'expected':'Projects page with New Project button'}",
         "testStrategy": "Test with 3 sample workflows (login, form submit, navigation). Verify 80%+ content usable without editing, context explains 'why' not just 'what'.",
         "priority": "high",
         "dependencies": [
-          13,
-          15,
-          16
+          "13",
+          "15",
+          "16"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 18,
+        "id": "18",
         "title": "Implement output management and file saving (FR-4.1, FR-4.2)",
         "description": "Save markdown and images to specified directory with consistent naming and table of contents.",
         "details": "In SKILL.md: mkdir -p output_dir/images. Save annotated screenshots with slug names. Generate TOC for multi-section docs (FR-4.3). Zip package option. Base64 embedding toggle (FR-3.6). Ensure relative paths work when moved.",
         "testStrategy": "Test file generation: verify directory created, naming consistent, images referenced correctly, zip downloadable.",
         "priority": "medium",
         "dependencies": [
-          15
+          "15"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 19,
+        "id": "19",
         "title": "Add image optimization and advanced annotation features",
         "description": "Implement image compression, full-page capture option, and multi-annotation support (FR-2.6, FR-2.7, NFR-2).",
         "details": "In annotate_screenshot.py and process_images.py: PNG compression (quality=85), crop to relevant region using element bounding boxes, full-page scroll capture option. Multi-action screenshots: combine 2-3 related actions when SSIM change minimal.",
         "testStrategy": "Verify image sizes <200KB, visual quality maintained, crop accuracy, full-page capture complete.",
         "priority": "medium",
         "dependencies": [
-          14
+          "14"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 20,
+        "id": "20",
         "title": "Implement audience adaptation and troubleshooting generation",
         "description": "Add US-4 audience levels and FR-3.7 troubleshooting section (P2 features).",
         "details": "SKILL.md: param audience='beginner|intermediate|expert'. Beginner: verbose context/warnings. Expert: concise commands. Troubleshooting: analyze workflow type (login->auth errors, forms->validation), generate 2-3 common issues with resolutions using troubleshooting_patterns.md.",
         "testStrategy": "Generate 3 audience versions from single recording. Verify beginner has explanations/warnings, expert is concise. Troubleshooting relevant to workflow.",
         "priority": "medium",
         "dependencies": [
-          17
+          "17"
         ],
         "status": "pending",
         "subtasks": []
       }
     ],
     "metadata": {
-      "created": "2026-01-20T20:49:13.926Z",
-      "updated": "2026-01-20T20:56:25.057Z",
-      "description": "Tasks for master context"
+      "version": "1.0.0",
+      "lastModified": "2026-01-20T21:04:41.716Z",
+      "taskCount": 10,
+      "completedCount": 0,
+      "tags": [
+        "master"
+      ]
     }
   }
 }
