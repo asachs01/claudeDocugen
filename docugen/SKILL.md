@@ -140,6 +140,118 @@ Generated documentation follows this structure:
 - `embedImages`: false (file references) or true (base64)
 - `includeTableOfContents`: true for 5+ steps
 
+## Playwright MCP Integration
+
+### Browser Launch and Navigation
+
+Use Playwright MCP to control the browser. The following tools are essential:
+
+```
+# Launch browser with appropriate viewport
+browser_launch: { headless: false, viewport: { width: 1280, height: 720 } }
+
+# Navigate to starting URL
+browser_navigate: { url: "https://example.com" }
+
+# Take screenshot at native resolution
+browser_screenshot: { path: "step-01.png", fullPage: false }
+```
+
+### Element Interaction and Metadata Capture
+
+Before each action, capture element metadata for documentation:
+
+```javascript
+// Get element metadata
+{
+  selector: "button#submit",           // CSS selector used
+  text: "Submit",                       // Visible text content
+  ariaLabel: "Submit form",            // ARIA label if present
+  role: "button",                       // ARIA role
+  boundingBox: { x, y, width, height } // Position for annotation
+}
+```
+
+### DOM Event Tracking (FR-1.5)
+
+For dynamic content, track DOM mutations:
+
+```
+// MutationObserver events to track:
+- childList: Elements added/removed
+- attributes: Class changes, visibility changes
+- characterData: Text content changes
+```
+
+### Session Data Structure
+
+Store recording session as JSON for processing:
+
+```json
+{
+  "sessionId": "uuid",
+  "startUrl": "https://example.com",
+  "workflowDescription": "Create a new project",
+  "startTime": "2026-01-20T10:00:00Z",
+  "steps": [
+    {
+      "step": 1,
+      "action": "click",
+      "selector": "button#new-project",
+      "elementText": "New Project",
+      "ariaLabel": "Create new project",
+      "boundingBox": { "x": 100, "y": 200, "width": 120, "height": 40 },
+      "screenshotBefore": "step-01-before.png",
+      "screenshotAfter": "step-01-after.png",
+      "ssimScore": 0.72,
+      "timestamp": "2026-01-20T10:00:05Z",
+      "domChanges": ["modal opened", "form displayed"]
+    }
+  ],
+  "endTime": "2026-01-20T10:05:00Z"
+}
+```
+
+### Screenshot Capture Guidelines
+
+- **Timing**: Capture before AND after each action
+- **Resolution**: Native viewport resolution (target: 1280x720 minimum)
+- **Performance**: Target <200ms per capture
+- **Naming**: `step-{nn}-{action}.png` (e.g., `step-01-click-submit.png`)
+
+### Action Recording
+
+For each user-directed action:
+
+1. **Identify target element** using Playwright selectors
+2. **Capture element metadata** (selector, text, ARIA, bounds)
+3. **Take pre-action screenshot**
+4. **Execute action** via appropriate Playwright tool:
+   - `browser_click`: Click interactions
+   - `browser_type`: Text input
+   - `browser_select`: Dropdown selection
+   - `browser_scroll`: Scroll actions
+5. **Wait for network idle** or specified condition
+6. **Take post-action screenshot**
+7. **Compare with SSIM** to detect step boundary
+8. **Record DOM mutations** if significant
+
+### Example Recording Flow
+
+```
+User: "Document creating a new GitHub repository"
+
+1. browser_navigate: https://github.com/new
+2. browser_screenshot: step-01-before.png
+3. [User says: "Enter repository name 'my-project'"]
+4. Capture metadata for input#repository-name
+5. browser_type: { selector: "input#repository-name", text: "my-project" }
+6. browser_screenshot: step-01-after.png
+7. Run detect_step.py step-01-before.png step-01-after.png
+8. If significant change: record as Step 1
+9. Continue with next action...
+```
+
 ## Scripts Reference
 
 | Script | Purpose |
