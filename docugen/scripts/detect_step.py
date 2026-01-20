@@ -20,8 +20,12 @@ Dependencies:
 """
 
 import argparse
+import os
 import sys
 from pathlib import Path
+
+# Default threshold, can be overridden via SSIM_THRESHOLD environment variable
+DEFAULT_THRESHOLD = float(os.environ.get('SSIM_THRESHOLD', '0.90'))
 
 try:
     from skimage.metrics import structural_similarity as ssim
@@ -86,8 +90,8 @@ def main():
     parser.add_argument(
         '--threshold',
         type=float,
-        default=0.90,
-        help='SSIM threshold (default: 0.90). Lower = more sensitive'
+        default=DEFAULT_THRESHOLD,
+        help=f'SSIM threshold (default: {DEFAULT_THRESHOLD}, or set SSIM_THRESHOLD env var). Lower = more sensitive'
     )
     parser.add_argument(
         '--json',
@@ -115,12 +119,15 @@ def main():
 
     if args.json:
         import json
+        from datetime import datetime
         result = {
             'ssim_score': round(score, 4),
             'threshold': args.threshold,
             'is_significant_change': is_step,
             'before': str(args.before),
-            'after': str(args.after)
+            'after': str(args.after),
+            'timestamp': datetime.now().isoformat(),
+            'confidence': round(1 - score, 4)  # Higher confidence = more different
         }
         print(json.dumps(result))
     else:
