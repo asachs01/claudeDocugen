@@ -527,53 +527,61 @@ Store recording session as JSON for processing:
 - **Resolution**: Native viewport resolution (target: 1280x720 minimum)
 - **Performance**: Target <200ms per capture
 - **Naming**: `step-{nn}-{action}.png` (e.g., `step-01-click-submit.png`)
-- **Scale Factor**: Capture `devicePixelRatio` for proper annotation alignment
 
-### Device Pixel Ratio Handling
+### Atomic Coordinate Capture (CRITICAL)
 
-**Critical for annotation alignment**: Playwright's `boundingBox()` returns CSS pixels, but
-screenshots may be captured at device pixel ratio (e.g., 2x on Retina/HiDPI displays).
+**The #1 cause of misaligned annotations is capturing coordinates and screenshots at different times.**
 
-**Capture devicePixelRatio with each screenshot:**
+Bounding boxes MUST be captured at the EXACT same page state as the screenshot. Any scroll,
+reflow, dynamic content change, or delay between getting coordinates and taking the screenshot
+will cause misalignment.
+
+**The Golden Rule: Capture coordinates immediately before/after screenshot, same page state.**
 
 ```javascript
-// Get device pixel ratio before taking screenshots
-const devicePixelRatio = await page.evaluate(() => window.devicePixelRatio);
-
-// Store in session data
-{
-  "devicePixelRatio": 2.0,  // e.g., 2.0 for Retina
-  "boundingBox": { "x": 100, "y": 200, "width": 120, "height": 40 }  // CSS pixels
-}
+// CORRECT: Atomic capture sequence
+await page.waitForLoadState('networkidle');  // Wait for page to stabilize
+const bbox = await element.boundingBox();     // Get coordinates NOW
+await page.screenshot({ path: 'step.png', scale: 'css' });  // Screenshot NOW
+// bbox coordinates match the screenshot exactly
 ```
 
-**Option 1: Use CSS scale for screenshots (Recommended)**
+```javascript
+// WRONG: Non-atomic capture (causes misalignment)
+const bbox = await element.boundingBox();     // Get coordinates
+await someOtherAction();                       // Page might change!
+await page.screenshot({ path: 'step.png' });  // Screenshot - bbox is now stale
+```
 
-Take screenshots at CSS pixel scale to match boundingBox coordinates:
+### Always Use CSS Scale
+
+**ALWAYS use `scale: "css"` for screenshots.** This ensures coordinates from `boundingBox()`
+match the screenshot pixels directly, eliminating DPI/devicePixelRatio issues entirely.
 
 ```
 browser_screenshot: { path: "step-01.png", scale: "css" }
 ```
 
-**Option 2: Transform coordinates during annotation**
+With `scale: "css"`:
+- Screenshot pixels = CSS pixels
+- `boundingBox()` returns CSS pixels
+- Coordinates work directly, no transformation needed
 
-If screenshots are at device pixels, pass scale factor to annotation script:
+**Do NOT rely on auto-scale detection** - it's a fallback, not a solution. Get it right the first time.
 
-```bash
-# Auto-detect scale factor from element positions vs image size
-python annotate_screenshot.py input.png output.png --elements metadata.json --auto-scale
+### Viewport Consistency
 
-# Or specify explicitly
-python annotate_screenshot.py input.png output.png --elements metadata.json --scale 2.0
+Lock viewport size at the start of recording and don't change it:
+
+```javascript
+await page.setViewportSize({ width: 1280, height: 720 });
 ```
 
-**Annotation Session Data Structure:**
+Store viewport in session metadata for validation:
 
 ```json
 {
-  "devicePixelRatio": 2.0,
   "viewport": { "width": 1280, "height": 720 },
-  "screenshotScale": "device",  // or "css"
   "elements": [
     {
       "isTarget": true,
