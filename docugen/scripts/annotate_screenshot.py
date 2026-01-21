@@ -22,9 +22,17 @@ Options:
     --auto-blur            Auto-detect and blur sensitive fields
     --smart                Smart auto-annotation (no config required!)
     --step <n>             Step number for smart annotation callout
+    --scale <factor>       Scale factor for coordinates (e.g., 2.0 for Retina)
+    --auto-scale           Auto-detect scale factor from image vs bounding boxes
 
 Dependencies:
     - PIL/Pillow
+
+Coordinate Systems:
+    Playwright's boundingBox() returns CSS pixels, but screenshots may be
+    captured at device pixel ratio (e.g., 2x on Retina displays). Use --scale
+    to multiply coordinates by the devicePixelRatio, or --auto-scale to
+    auto-detect the scale factor.
 """
 
 import argparse
@@ -70,7 +78,155 @@ SENSITIVE_PATTERNS = {
 }
 
 
-def detect_sensitive_fields(elements: List[Dict[str, Any]]) -> List[Tuple[int, int, int, int]]:
+def transform_bounding_box(
+    bbox: Dict[str, Any],
+    scale_factor: float = 1.0
+) -> Tuple[int, int, int, int]:
+    """
+    Transform bounding box coordinates by scale factor.
+
+    Playwright's boundingBox() returns CSS pixels, but screenshots may be
+    captured at device pixel ratio (e.g., 2x on Retina). This function
+    scales the coordinates to match the actual screenshot pixels.
+
+    Args:
+        bbox: Bounding box dict with x, y, width, height
+        scale_factor: Device pixel ratio (e.g., 2.0 for Retina)
+
+    Returns:
+        Tuple of (x, y, width, height) in image pixels
+    """
+    return (
+        int(bbox.get('x', 0) * scale_factor),
+        int(bbox.get('y', 0) * scale_factor),
+        int(bbox.get('width', 0) * scale_factor),
+        int(bbox.get('height', 0) * scale_factor)
+    )
+
+
+def detect_scale_factor(
+    elements: List[Dict[str, Any]],
+    img_width: int,
+    img_height: int
+) -> float:
+    """
+    Auto-detect the scale factor by comparing bounding boxes to image size.
+
+    The key insight: Playwright's boundingBox() returns CSS pixels, but screenshots
+    may be captured at device pixel ratio. If scale factor is 2.0, the screenshot
+    has 2x the pixels of the CSS coordinate space.
+
+    Detection strategy:
+    1. If any bbox extends BEYOND image bounds at scale 1.0 → need to scale DOWN (rare)
+    2. If all bboxes are suspiciously small (< 25% of image) and image is large → likely HiDPI
+    3. Check if doubling coordinates makes bboxes fit proportionally better
+
+    Common scale factors:
+    - 1.0: Standard displays, or screenshots taken with scale="css"
+    - 2.0: Retina/HiDPI displays
+    - 1.5, 1.25: Windows scaling
+
+    Args:
+        elements: List of element metadata with boundingBox
+        img_width, img_height: Actual image dimensions
+
+    Returns:
+        Detected scale factor (defaults to 1.0 if uncertain)
+    """
+    if not elements:
+        return 1.0
+
+    # Collect all bounding boxes
+    bboxes = []
+    for elem in elements:
+        if 'boundingBox' not in elem:
+            continue
+        bbox = elem['boundingBox']
+        x = bbox.get('x', 0)
+        y = bbox.get('y', 0)
+        w = bbox.get('width', 0)
+        h = bbox.get('height', 0)
+        if w > 0 and h > 0:
+            bboxes.append((x, y, w, h))
+
+    if not bboxes:
+        return 1.0
+
+    # Check if coordinates fit at scale 1.0
+    all_fit_at_1x = all(
+        x + w <= img_width and y + h <= img_height
+        for x, y, w, h in bboxes
+    )
+
+    # If coords don't fit at 1x, we might need to scale DOWN (unusual case)
+    if not all_fit_at_1x:
+        # Try common scales to see which makes them fit
+        for scale in [0.5, 0.75, 1.0]:
+            if all(
+                x * scale + w * scale <= img_width and y * scale + h * scale <= img_height
+                for x, y, w, h in bboxes
+            ):
+                print(f"Warning: Bounding boxes exceed image at scale 1.0, using {scale}", file=sys.stderr)
+                return scale
+        return 1.0
+
+    # If coords fit at 1x, check if the image might be HiDPI (2x)
+    # Heuristic: if image is large (>1500px) and coords seem to occupy
+    # only a small portion of it, might need 2x scaling
+    max_right = max(x + w for x, y, w, h in bboxes)
+    max_bottom = max(y + h for x, y, w, h in bboxes)
+
+    # Check if doubling would still fit and cover more of the image proportionally
+    would_fit_at_2x = all(
+        x * 2 + w * 2 <= img_width and y * 2 + h * 2 <= img_height
+        for x, y, w, h in bboxes
+    )
+
+    if would_fit_at_2x:
+        # Calculate coverage at 1x vs 2x
+        coverage_1x = (max_right / img_width + max_bottom / img_height) / 2
+        coverage_2x = (max_right * 2 / img_width + max_bottom * 2 / img_height) / 2
+
+        # If 2x coverage is between 50-95% and 1x is under 50%, suggest 2x
+        if coverage_1x < 0.5 and 0.5 <= coverage_2x <= 0.95:
+            return 2.0
+
+    # Default to 1.0 - most common case, especially with scale="css" screenshots
+    return 1.0
+
+
+def validate_bbox_in_image(
+    bbox: Tuple[int, int, int, int],
+    img_width: int,
+    img_height: int
+) -> bool:
+    """
+    Check if a bounding box fits within the image bounds.
+
+    Args:
+        bbox: (x, y, width, height) tuple
+        img_width, img_height: Image dimensions
+
+    Returns:
+        True if bbox is valid and fits within image
+    """
+    x, y, w, h = bbox
+
+    # Check for negative values
+    if x < 0 or y < 0 or w <= 0 or h <= 0:
+        return False
+
+    # Check if bbox extends beyond image
+    if x + w > img_width or y + h > img_height:
+        return False
+
+    return True
+
+
+def detect_sensitive_fields(
+    elements: List[Dict[str, Any]],
+    scale_factor: float = 1.0
+) -> List[Tuple[int, int, int, int]]:
     """
     Detect sensitive fields from element metadata and return their bounding boxes.
 
@@ -81,9 +237,10 @@ def detect_sensitive_fields(elements: List[Dict[str, Any]]) -> List[Tuple[int, i
             - ariaLabel: ARIA label
             - inputType: Input type attribute (e.g., 'password')
             - boundingBox: {x, y, width, height}
+        scale_factor: Device pixel ratio for coordinate transformation
 
     Returns:
-        List of (x, y, width, height) tuples for regions to blur
+        List of (x, y, width, height) tuples for regions to blur (in image pixels)
     """
     blur_regions = []
 
@@ -114,13 +271,8 @@ def detect_sensitive_fields(elements: List[Dict[str, Any]]) -> List[Tuple[int, i
                     break
 
         if is_sensitive and 'boundingBox' in elem:
-            bbox = elem['boundingBox']
-            blur_regions.append((
-                int(bbox.get('x', 0)),
-                int(bbox.get('y', 0)),
-                int(bbox.get('width', 0)),
-                int(bbox.get('height', 0))
-            ))
+            # Transform coordinates using scale factor
+            blur_regions.append(transform_bounding_box(elem['boundingBox'], scale_factor))
 
     return blur_regions
 
@@ -335,7 +487,8 @@ def smart_annotate(
     draw: ImageDraw.Draw,
     elements: List[Dict[str, Any]],
     step_number: int,
-    styles: dict
+    styles: dict,
+    scale_factor: float = 1.0
 ) -> Image.Image:
     """
     Smart auto-annotation: automatically detect what to highlight and annotate.
@@ -354,6 +507,7 @@ def smart_annotate(
         elements: Element metadata from Playwright capture
         step_number: Step number for callout
         styles: Style configuration
+        scale_factor: Device pixel ratio (e.g., 2.0 for Retina displays)
 
     Returns:
         Modified image with smart annotations
@@ -366,18 +520,26 @@ def smart_annotate(
     if not target or 'boundingBox' not in target:
         return img
 
-    bbox = target['boundingBox']
-    x = int(bbox.get('x', 0))
-    y = int(bbox.get('y', 0))
-    w = int(bbox.get('width', 0))
-    h = int(bbox.get('height', 0))
+    # Transform bounding box coordinates using scale factor
+    x, y, w, h = transform_bounding_box(target['boundingBox'], scale_factor)
 
-    # Skip if element is too small to be meaningful
+    # Skip if element is too small to be meaningful (after scaling)
     if w < 5 or h < 5:
         return img
 
-    # Auto-blur sensitive fields first
-    blur_regions = detect_sensitive_fields(elements)
+    # Validate that transformed coords fit within image
+    img_width, img_height = img.size
+    if not validate_bbox_in_image((x, y, w, h), img_width, img_height):
+        print(f"Warning: Bounding box ({x}, {y}, {w}, {h}) extends beyond image "
+              f"({img_width}x{img_height}). Check scale factor.", file=sys.stderr)
+        # Clamp to image bounds
+        x = max(0, min(x, img_width - 1))
+        y = max(0, min(y, img_height - 1))
+        w = min(w, img_width - x)
+        h = min(h, img_height - y)
+
+    # Auto-blur sensitive fields first (with scale factor)
+    blur_regions = detect_sensitive_fields(elements, scale_factor)
     for coords in blur_regions:
         img = blur_region(img, coords, styles)
         draw = ImageDraw.Draw(img)
@@ -386,14 +548,13 @@ def smart_annotate(
     draw_highlight_box(draw, (x, y, w, h), styles)
 
     # Determine optimal callout position
-    img_width, img_height = img.size
     callout_pos = calculate_callout_position(x, y, w, h, img_width, img_height, styles)
 
     # Draw callout
     draw_callout(img, draw, callout_pos, step_number, styles)
 
-    # Draw arrow from callout to element for small elements
-    if w < 100 or h < 30:
+    # Draw arrow from callout to element for small elements (use scaled dimensions)
+    if w < 100 * scale_factor or h < 30 * scale_factor:
         # Point arrow to center of element
         element_center = (x + w // 2, y + h // 2)
         draw_arrow(draw, callout_pos, element_center, styles)
@@ -586,6 +747,17 @@ def main():
         default=1,
         help='Step number for smart annotation callout (default: 1)'
     )
+    parser.add_argument(
+        '--scale',
+        type=float,
+        default=1.0,
+        help='Scale factor for coordinates (devicePixelRatio). Common values: 1.0 (standard), 2.0 (Retina/HiDPI)'
+    )
+    parser.add_argument(
+        '--auto-scale',
+        action='store_true',
+        help='Auto-detect scale factor by comparing element bounding boxes to image dimensions'
+    )
 
     args = parser.parse_args()
 
@@ -616,7 +788,19 @@ def main():
             else:
                 elements = elements_data.get('elements', [])
 
-        img = smart_annotate(img, draw, elements, args.step, styles)
+        # Determine scale factor
+        scale_factor = args.scale
+        img_width, img_height = img.size
+
+        if args.auto_scale:
+            detected_scale = detect_scale_factor(elements, img_width, img_height)
+            if detected_scale != 1.0:
+                print(f"Auto-detected scale factor: {detected_scale}")
+                scale_factor = detected_scale
+        elif scale_factor != 1.0:
+            print(f"Using scale factor: {scale_factor}")
+
+        img = smart_annotate(img, draw, elements, args.step, styles, scale_factor)
 
         # Save and exit - smart mode handles everything
         args.output.parent.mkdir(parents=True, exist_ok=True)

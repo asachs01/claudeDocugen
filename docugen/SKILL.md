@@ -527,6 +527,61 @@ Store recording session as JSON for processing:
 - **Resolution**: Native viewport resolution (target: 1280x720 minimum)
 - **Performance**: Target <200ms per capture
 - **Naming**: `step-{nn}-{action}.png` (e.g., `step-01-click-submit.png`)
+- **Scale Factor**: Capture `devicePixelRatio` for proper annotation alignment
+
+### Device Pixel Ratio Handling
+
+**Critical for annotation alignment**: Playwright's `boundingBox()` returns CSS pixels, but
+screenshots may be captured at device pixel ratio (e.g., 2x on Retina/HiDPI displays).
+
+**Capture devicePixelRatio with each screenshot:**
+
+```javascript
+// Get device pixel ratio before taking screenshots
+const devicePixelRatio = await page.evaluate(() => window.devicePixelRatio);
+
+// Store in session data
+{
+  "devicePixelRatio": 2.0,  // e.g., 2.0 for Retina
+  "boundingBox": { "x": 100, "y": 200, "width": 120, "height": 40 }  // CSS pixels
+}
+```
+
+**Option 1: Use CSS scale for screenshots (Recommended)**
+
+Take screenshots at CSS pixel scale to match boundingBox coordinates:
+
+```
+browser_screenshot: { path: "step-01.png", scale: "css" }
+```
+
+**Option 2: Transform coordinates during annotation**
+
+If screenshots are at device pixels, pass scale factor to annotation script:
+
+```bash
+# Auto-detect scale factor from element positions vs image size
+python annotate_screenshot.py input.png output.png --elements metadata.json --auto-scale
+
+# Or specify explicitly
+python annotate_screenshot.py input.png output.png --elements metadata.json --scale 2.0
+```
+
+**Annotation Session Data Structure:**
+
+```json
+{
+  "devicePixelRatio": 2.0,
+  "viewport": { "width": 1280, "height": 720 },
+  "screenshotScale": "device",  // or "css"
+  "elements": [
+    {
+      "isTarget": true,
+      "boundingBox": { "x": 100, "y": 200, "width": 120, "height": 40 }
+    }
+  ]
+}
+```
 
 ### Action Recording
 
