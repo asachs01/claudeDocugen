@@ -61,7 +61,7 @@ done
 
 echo -e "${BLUE}"
 echo "╔═══════════════════════════════════════════╗"
-echo "║         DocuGen Installer v1.0            ║"
+echo "║         DocuGen Installer v1.1            ║"
 echo "║   AI-Powered Documentation Generator      ║"
 echo "╚═══════════════════════════════════════════╝"
 echo -e "${NC}"
@@ -74,9 +74,16 @@ if [[ -d "$INSTALL_PATH" ]] && [[ "$UPDATE_MODE" == false ]]; then
 fi
 
 # Check Python version
-echo -e "${BLUE}[1/5]${NC} Checking Python..."
+echo -e "${BLUE}[1/6]${NC} Checking Python..."
+PYTHON_CMD=""
 if command -v python3 &> /dev/null; then
-    PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+    PYTHON_CMD="python3"
+elif command -v python &> /dev/null; then
+    PYTHON_CMD="python"
+fi
+
+if [[ -n "$PYTHON_CMD" ]]; then
+    PYTHON_VERSION=$($PYTHON_CMD -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
     PYTHON_MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
     PYTHON_MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
 
@@ -100,18 +107,19 @@ else
 fi
 
 # Create installation directory
-echo -e "${BLUE}[2/5]${NC} Creating installation directory..."
+echo -e "${BLUE}[2/6]${NC} Creating installation directory..."
 mkdir -p "$INSTALL_PATH"
 echo -e "  ${GREEN}✓${NC} Created ${INSTALL_PATH}"
 
 # Download skill files
-echo -e "${BLUE}[3/5]${NC} Downloading DocuGen skill..."
+echo -e "${BLUE}[3/6]${NC} Downloading DocuGen skill..."
 
 # Create subdirectories
 mkdir -p "${INSTALL_PATH}/scripts"
 mkdir -p "${INSTALL_PATH}/references"
 mkdir -p "${INSTALL_PATH}/templates"
 mkdir -p "${INSTALL_PATH}/assets"
+mkdir -p "${INSTALL_PATH}/bin"
 
 # Download files
 download_file() {
@@ -138,32 +146,71 @@ download_file "templates/quick_reference.md" "templates/quick_reference.md"
 download_file "templates/tutorial.md" "templates/tutorial.md"
 download_file "assets/annotation_styles.json" "assets/annotation_styles.json"
 
-# Install Python dependencies
+# Create virtual environment and install dependencies
 if [[ "$INSTALL_DEPS" == true ]]; then
-    echo -e "${BLUE}[4/5]${NC} Installing Python dependencies..."
-    # Use --user to avoid PEP 668 "externally managed environment" errors on macOS/Homebrew
-    if python3 -m pip install --user --quiet pillow scikit-image jinja2 numpy 2>/dev/null; then
-        echo -e "  ${GREEN}✓${NC} Installed: pillow, scikit-image, jinja2, numpy"
-    elif python3 -m pip install --quiet pillow scikit-image jinja2 numpy 2>/dev/null; then
-        # Fallback for systems without --user restriction
+    echo -e "${BLUE}[4/6]${NC} Creating virtual environment..."
+    VENV_PATH="${INSTALL_PATH}/.venv"
+
+    # Remove old venv if updating
+    if [[ -d "$VENV_PATH" ]] && [[ "$UPDATE_MODE" == true ]]; then
+        rm -rf "$VENV_PATH"
+    fi
+
+    if $PYTHON_CMD -m venv "$VENV_PATH"; then
+        echo -e "  ${GREEN}✓${NC} Created virtual environment"
+    else
+        echo -e "  ${RED}✗${NC} Failed to create virtual environment"
+        echo "     Make sure python3-venv is installed:"
+        echo "     Ubuntu/Debian: sudo apt install python3-venv"
+        exit 1
+    fi
+
+    echo -e "${BLUE}[5/6]${NC} Installing Python dependencies..."
+    if "${VENV_PATH}/bin/pip" install --quiet pillow scikit-image jinja2 numpy 2>/dev/null; then
         echo -e "  ${GREEN}✓${NC} Installed: pillow, scikit-image, jinja2, numpy"
     else
-        echo -e "  ${YELLOW}⚠${NC} Could not install dependencies automatically."
-        echo "     Install manually with:"
-        echo "     pip install --user pillow scikit-image jinja2 numpy"
-        echo ""
-        echo "     Or use a virtual environment:"
-        echo "     python3 -m venv ~/.docugen-venv && source ~/.docugen-venv/bin/activate"
-        echo "     pip install pillow scikit-image jinja2 numpy"
+        echo -e "  ${RED}✗${NC} Failed to install dependencies"
+        exit 1
     fi
 else
-    echo -e "${BLUE}[4/5]${NC} Skipping dependency installation (--no-deps)"
+    echo -e "${BLUE}[4/6]${NC} Skipping virtual environment (--no-deps)"
+    echo -e "${BLUE}[5/6]${NC} Skipping dependency installation (--no-deps)"
 fi
 
+# Create wrapper scripts in bin/
+echo -e "${BLUE}[6/6]${NC} Creating wrapper scripts..."
+
+VENV_PYTHON="${INSTALL_PATH}/.venv/bin/python"
+SCRIPTS_DIR="${INSTALL_PATH}/scripts"
+BIN_DIR="${INSTALL_PATH}/bin"
+
+# Create wrapper for each script
+create_wrapper() {
+    local script_name="$1"
+    local wrapper_name="$2"
+    cat > "${BIN_DIR}/${wrapper_name}" << EOF
+#!/usr/bin/env bash
+exec "${VENV_PYTHON}" "${SCRIPTS_DIR}/${script_name}" "\$@"
+EOF
+    chmod +x "${BIN_DIR}/${wrapper_name}"
+    echo -e "  ${GREEN}✓${NC} bin/${wrapper_name}"
+}
+
+create_wrapper "detect_step.py" "detect-step"
+create_wrapper "annotate_screenshot.py" "annotate-screenshot"
+create_wrapper "generate_markdown.py" "generate-markdown"
+create_wrapper "process_images.py" "process-images"
+
 # Verify installation
-echo -e "${BLUE}[5/5]${NC} Verifying installation..."
-if [[ -f "${INSTALL_PATH}/SKILL.md" ]] && [[ -f "${INSTALL_PATH}/scripts/detect_step.py" ]]; then
-    echo -e "  ${GREEN}✓${NC} Installation verified"
+echo ""
+echo -e "${BLUE}Verifying installation...${NC}"
+if [[ -f "${INSTALL_PATH}/SKILL.md" ]] && [[ -x "${BIN_DIR}/detect-step" ]]; then
+    # Test that the venv works
+    if "${BIN_DIR}/detect-step" --help &>/dev/null || [[ $? -eq 2 ]]; then
+        echo -e "  ${GREEN}✓${NC} Installation verified"
+    else
+        echo -e "  ${YELLOW}⚠${NC} Scripts installed but may need manual testing"
+    fi
 else
     echo -e "  ${RED}✗${NC} Installation verification failed"
     exit 1
@@ -176,6 +223,9 @@ echo -e "${GREEN}║      DocuGen installed successfully!      ║${NC}"
 echo -e "${GREEN}╚═══════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "Installed to: ${BLUE}${INSTALL_PATH}${NC}"
+echo ""
+echo -e "Scripts available in: ${BLUE}${BIN_DIR}/${NC}"
+echo "  detect-step, annotate-screenshot, generate-markdown, process-images"
 echo ""
 echo -e "${YELLOW}Try it now in Claude:${NC}"
 echo ""

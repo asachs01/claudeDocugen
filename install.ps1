@@ -36,10 +36,10 @@ function Write-ColorOutput {
 
 function Show-Banner {
     Write-Host ""
-    Write-ColorOutput "╔═══════════════════════════════════════════╗" "Cyan"
-    Write-ColorOutput "║         DocuGen Installer v1.0            ║" "Cyan"
-    Write-ColorOutput "║   AI-Powered Documentation Generator      ║" "Cyan"
-    Write-ColorOutput "╚═══════════════════════════════════════════╝" "Cyan"
+    Write-ColorOutput "+===========================================+" "Cyan"
+    Write-ColorOutput "|         DocuGen Installer v1.1            |" "Cyan"
+    Write-ColorOutput "|   AI-Powered Documentation Generator      |" "Cyan"
+    Write-ColorOutput "+===========================================+" "Cyan"
     Write-Host ""
 }
 
@@ -58,8 +58,9 @@ function Show-Help {
 }
 
 function Test-PythonVersion {
-    Write-ColorOutput "[1/5] Checking Python..." "Cyan"
+    Write-ColorOutput "[1/6] Checking Python..." "Cyan"
 
+    $pythonCmd = $null
     try {
         $pythonCmd = Get-Command python -ErrorAction SilentlyContinue
         if (-not $pythonCmd) {
@@ -71,10 +72,10 @@ function Test-PythonVersion {
             $major, $minor = $version -split '\.'
 
             if ([int]$major -ge 3 -and [int]$minor -ge 8) {
-                Write-ColorOutput "  ✓ Python $version found" "Green"
+                Write-ColorOutput "  + Python $version found" "Green"
                 return $pythonCmd.Source
             } else {
-                Write-ColorOutput "  ✗ Python 3.8+ required (found $version)" "Red"
+                Write-ColorOutput "  x Python 3.8+ required (found $version)" "Red"
                 Write-Host ""
                 Write-Host "Install Python 3.8+ from https://python.org"
                 Write-Host "Or use: winget install Python.Python.3.11"
@@ -84,7 +85,7 @@ function Test-PythonVersion {
             throw "Python not found"
         }
     } catch {
-        Write-ColorOutput "  ✗ Python 3 not found" "Red"
+        Write-ColorOutput "  x Python 3 not found" "Red"
         Write-Host ""
         Write-Host "Install Python 3.8+ from https://python.org"
         Write-Host "Or use: winget install Python.Python.3.11"
@@ -93,7 +94,7 @@ function Test-PythonVersion {
 }
 
 function New-InstallDirectory {
-    Write-ColorOutput "[2/5] Creating installation directory..." "Cyan"
+    Write-ColorOutput "[2/6] Creating installation directory..." "Cyan"
 
     if ((Test-Path $Path) -and -not $Update) {
         Write-ColorOutput "DocuGen is already installed at $Path" "Yellow"
@@ -106,8 +107,9 @@ function New-InstallDirectory {
     New-Item -ItemType Directory -Path "$Path\references" -Force | Out-Null
     New-Item -ItemType Directory -Path "$Path\templates" -Force | Out-Null
     New-Item -ItemType Directory -Path "$Path\assets" -Force | Out-Null
+    New-Item -ItemType Directory -Path "$Path\bin" -Force | Out-Null
 
-    Write-ColorOutput "  ✓ Created $Path" "Green"
+    Write-ColorOutput "  + Created $Path" "Green"
 }
 
 function Get-SkillFile {
@@ -118,15 +120,15 @@ function Get-SkillFile {
 
     try {
         Invoke-WebRequest -Uri $url -OutFile $destination -UseBasicParsing
-        Write-ColorOutput "  ✓ $LocalPath" "Green"
+        Write-ColorOutput "  + $LocalPath" "Green"
     } catch {
-        Write-ColorOutput "  ✗ Failed to download $RemotePath" "Red"
+        Write-ColorOutput "  x Failed to download $RemotePath" "Red"
         exit 1
     }
 }
 
 function Install-SkillFiles {
-    Write-ColorOutput "[3/5] Downloading DocuGen skill..." "Cyan"
+    Write-ColorOutput "[3/6] Downloading DocuGen skill..." "Cyan"
 
     Get-SkillFile "SKILL.md" "SKILL.md"
     Get-SkillFile "scripts/detect_step.py" "scripts\detect_step.py"
@@ -142,67 +144,95 @@ function Install-SkillFiles {
     Get-SkillFile "assets/annotation_styles.json" "assets\annotation_styles.json"
 }
 
-function Install-PythonDependencies {
+function New-VirtualEnvironment {
     param([string]$PythonPath)
 
     if ($NoDeps) {
-        Write-ColorOutput "[4/5] Skipping dependency installation (-NoDeps)" "Cyan"
-        return
+        Write-ColorOutput "[4/6] Skipping virtual environment (-NoDeps)" "Cyan"
+        Write-ColorOutput "[5/6] Skipping dependency installation (-NoDeps)" "Cyan"
+        return $null
     }
 
-    Write-ColorOutput "[4/5] Installing Python dependencies..." "Cyan"
+    Write-ColorOutput "[4/6] Creating virtual environment..." "Cyan"
 
-    # Try --user first (handles PEP 668 restrictions), then fallback to system
-    $installed = $false
+    $venvPath = "$Path\.venv"
+
+    # Remove old venv if updating
+    if ((Test-Path $venvPath) -and $Update) {
+        Remove-Item -Recurse -Force $venvPath
+    }
+
     try {
-        $result = & $PythonPath -m pip install --user --quiet pillow scikit-image jinja2 numpy 2>&1
-        if ($LASTEXITCODE -eq 0) {
-            $installed = $true
-        }
-    } catch {}
-
-    if (-not $installed) {
-        try {
-            $result = & $PythonPath -m pip install --quiet pillow scikit-image jinja2 numpy 2>&1
-            if ($LASTEXITCODE -eq 0) {
-                $installed = $true
-            }
-        } catch {}
+        & $PythonPath -m venv $venvPath
+        Write-ColorOutput "  + Created virtual environment" "Green"
+    } catch {
+        Write-ColorOutput "  x Failed to create virtual environment" "Red"
+        exit 1
     }
 
-    if ($installed) {
-        Write-ColorOutput "  ✓ Installed: pillow, scikit-image, jinja2, numpy" "Green"
-    } else {
-        Write-ColorOutput "  ⚠ Could not install dependencies automatically." "Yellow"
-        Write-Host "     Install manually with:"
-        Write-Host "     pip install --user pillow scikit-image jinja2 numpy"
-        Write-Host ""
-        Write-Host "     Or use a virtual environment:"
-        Write-Host "     python -m venv $env:USERPROFILE\.docugen-venv"
-        Write-Host "     $env:USERPROFILE\.docugen-venv\Scripts\Activate.ps1"
-        Write-Host "     pip install pillow scikit-image jinja2 numpy"
+    Write-ColorOutput "[5/6] Installing Python dependencies..." "Cyan"
+
+    $pipPath = "$venvPath\Scripts\pip.exe"
+    try {
+        & $pipPath install --quiet pillow scikit-image jinja2 numpy 2>$null
+        Write-ColorOutput "  + Installed: pillow, scikit-image, jinja2, numpy" "Green"
+    } catch {
+        Write-ColorOutput "  x Failed to install dependencies" "Red"
+        exit 1
+    }
+
+    return $venvPath
+}
+
+function New-WrapperScripts {
+    param([string]$VenvPath)
+
+    Write-ColorOutput "[6/6] Creating wrapper scripts..." "Cyan"
+
+    $venvPython = "$VenvPath\Scripts\python.exe"
+    $scriptsDir = "$Path\scripts"
+    $binDir = "$Path\bin"
+
+    # Create wrapper batch files for each script
+    $scripts = @{
+        "detect_step.py" = "detect-step"
+        "annotate_screenshot.py" = "annotate-screenshot"
+        "generate_markdown.py" = "generate-markdown"
+        "process_images.py" = "process-images"
+    }
+
+    foreach ($script in $scripts.GetEnumerator()) {
+        $wrapperPath = "$binDir\$($script.Value).cmd"
+        $content = "@echo off`r`n`"$venvPython`" `"$scriptsDir\$($script.Key)`" %*"
+        Set-Content -Path $wrapperPath -Value $content
+        Write-ColorOutput "  + bin\$($script.Value).cmd" "Green"
     }
 }
 
 function Test-Installation {
-    Write-ColorOutput "[5/5] Verifying installation..." "Cyan"
+    Write-Host ""
+    Write-ColorOutput "Verifying installation..." "Cyan"
 
-    if ((Test-Path "$Path\SKILL.md") -and (Test-Path "$Path\scripts\detect_step.py")) {
-        Write-ColorOutput "  ✓ Installation verified" "Green"
+    if ((Test-Path "$Path\SKILL.md") -and (Test-Path "$Path\bin\detect-step.cmd")) {
+        Write-ColorOutput "  + Installation verified" "Green"
     } else {
-        Write-ColorOutput "  ✗ Installation verification failed" "Red"
+        Write-ColorOutput "  x Installation verification failed" "Red"
         exit 1
     }
 }
 
 function Show-Success {
     Write-Host ""
-    Write-ColorOutput "╔═══════════════════════════════════════════╗" "Green"
-    Write-ColorOutput "║      DocuGen installed successfully!      ║" "Green"
-    Write-ColorOutput "╚═══════════════════════════════════════════╝" "Green"
+    Write-ColorOutput "+===========================================+" "Green"
+    Write-ColorOutput "|      DocuGen installed successfully!      |" "Green"
+    Write-ColorOutput "+===========================================+" "Green"
     Write-Host ""
     Write-Host "Installed to: " -NoNewline
     Write-ColorOutput $Path "Cyan"
+    Write-Host ""
+    Write-Host "Scripts available in: " -NoNewline
+    Write-ColorOutput "$Path\bin\" "Cyan"
+    Write-Host "  detect-step, annotate-screenshot, generate-markdown, process-images"
     Write-Host ""
     Write-ColorOutput "Try it now in Claude:" "Yellow"
     Write-Host ""
@@ -223,6 +253,11 @@ Show-Banner
 $pythonPath = Test-PythonVersion
 New-InstallDirectory
 Install-SkillFiles
-Install-PythonDependencies -PythonPath $pythonPath
+$venvPath = New-VirtualEnvironment -PythonPath $pythonPath
+if ($venvPath) {
+    New-WrapperScripts -VenvPath $venvPath
+} else {
+    Write-ColorOutput "[6/6] Skipping wrapper scripts (-NoDeps)" "Cyan"
+}
 Test-Installation
 Show-Success
