@@ -23,7 +23,8 @@ Options:
     --smart                Smart auto-annotation (no config required!)
     --step <n>             Step number for smart annotation callout
     --scale <factor>       Scale factor for coordinates (e.g., 2.0 for Retina)
-    --auto-scale           Auto-detect scale factor from image vs bounding boxes
+    --auto-scale           Auto-detect scale factor (default: enabled)
+    --no-auto-scale        Disable auto-scale, use --scale value directly
 
 Dependencies:
     - PIL/Pillow
@@ -756,7 +757,13 @@ def main():
     parser.add_argument(
         '--auto-scale',
         action='store_true',
-        help='Auto-detect scale factor by comparing element bounding boxes to image dimensions'
+        default=True,
+        help='Auto-detect scale factor by comparing element bounding boxes to image dimensions (default: enabled)'
+    )
+    parser.add_argument(
+        '--no-auto-scale',
+        action='store_true',
+        help='Disable auto-scale detection, use --scale value directly'
     )
 
     args = parser.parse_args()
@@ -792,7 +799,10 @@ def main():
         scale_factor = args.scale
         img_width, img_height = img.size
 
-        if args.auto_scale:
+        # Auto-scale is enabled by default unless --no-auto-scale is specified
+        use_auto_scale = args.auto_scale and not args.no_auto_scale
+
+        if use_auto_scale:
             detected_scale = detect_scale_factor(elements, img_width, img_height)
             if detected_scale != 1.0:
                 print(f"Auto-detected scale factor: {detected_scale}")

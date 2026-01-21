@@ -61,7 +61,8 @@ Smart mode automatically:
 | `--step` | `number` | Step number for smart callout (default: 1) |
 | `--elements` | `path` | Element metadata JSON (from Playwright) |
 | `--scale` | `number` | Scale factor for coordinates (devicePixelRatio) |
-| `--auto-scale` | - | Auto-detect scale factor from bounding boxes |
+| `--auto-scale` | - | Auto-detect scale factor (default: enabled) |
+| `--no-auto-scale` | - | Disable auto-scale, use --scale value directly |
 | `--box` | `x,y,w,h` | Draw highlight box |
 | `--arrow` | `x1,y1,x2,y2` | Draw arrow |
 | `--callout` | `x,y,number` | Numbered callout |
@@ -72,19 +73,19 @@ Smart mode automatically:
 
 ### HiDPI Display Support
 
-Playwright's `boundingBox()` returns CSS pixels, but screenshots may be captured at device pixel ratio (e.g., 2x on Retina displays). Use `--scale` to align annotations correctly:
+Playwright's `boundingBox()` returns CSS pixels, but screenshots may be captured at device pixel ratio (e.g., 2x on Retina displays). **Auto-scale is enabled by default** to handle this automatically.
 
 ```bash
-# Explicit scale factor (e.g., 2.0 for Retina)
+# Auto-scale is default - just run normally
 python annotate_screenshot.py screenshot.png output.png \
-  --elements elements.json --scale 2.0
+  --elements elements.json
 
-# Auto-detect scale factor
+# Explicit scale factor (overrides auto-detection)
 python annotate_screenshot.py screenshot.png output.png \
-  --elements elements.json --auto-scale
+  --elements elements.json --no-auto-scale --scale 2.0
 ```
 
-**Recommended:** Capture screenshots at CSS scale in Playwright to avoid coordinate mismatch:
+**Alternative:** Capture screenshots at CSS scale in Playwright to avoid coordinate mismatch entirely:
 ```
 browser_screenshot: { path: "step-01.png", scale: "css" }
 ```
