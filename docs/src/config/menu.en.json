@@ -2,97 +2,68 @@
   "main": [
     {
       "name": "Home",
-      "url": "/"
+      "url": "/claudeDocugen/"
     },
     {
-      "name": "Documentation",
-      "url": "/getting-started/introduction/overview/"
+      "name": "Getting Started",
+      "url": "/claudeDocugen/getting-started/"
     },
     {
-      "name": "Reference",
+      "name": "Guides",
       "url": "",
       "hasChildren": true,
       "children": [
         {
-          "name": "Configuration",
-          "url": "/reference/configuration/"
+          "name": "Recording Workflows",
+          "url": "/claudeDocugen/guides/recording/"
         },
         {
-          "name": "Plugins Reference",
-          "url": "/reference/plugin/"
+          "name": "Screenshot Annotation",
+          "url": "/claudeDocugen/guides/annotation/"
+        },
+        {
+          "name": "Using Templates",
+          "url": "/claudeDocugen/guides/templates/"
+        },
+        {
+          "name": "Audience Adaptation",
+          "url": "/claudeDocugen/guides/audiences/"
         }
       ]
     }
   ],
   "footer": {
     "community": {
-      "title": "Join Our Community",
+      "title": "Community",
       "links": [
         {
-          "name": "GitHub Discussions",
-          "url": "https://github.com/themefisher/dockit/discussions"
+          "name": "GitHub",
+          "url": "https://github.com/asachs01/claudeDocugen"
         },
         {
-          "name": "Discord Community",
-          "url": "/"
+          "name": "Issues",
+          "url": "https://github.com/asachs01/claudeDocugen/issues"
         },
         {
-          "name": "Twitter Updates",
-          "url": "/"
-        },
-        {
-          "name": "Contributing Guide",
-          "url": "/"
+          "name": "Discussions",
+          "url": "https://github.com/asachs01/claudeDocugen/discussions"
         }
       ]
     },
     "help_links": {
-      "title": "Helpful Links",
+      "title": "Documentation",
       "links": [
         {
           "name": "Getting Started",
-          "url": "/"
+          "url": "/claudeDocugen/getting-started/"
         },
         {
-          "name": "Privacy Policy",
-          "url": "/privacy-policy"
+          "name": "Reference",
+          "url": "/claudeDocugen/reference/skill-api/"
         },
         {
-          "name": "Terms and Conditions",
-          "url": "/terms-conditions"
-        },
-        {
-          "name": "About Us",
-          "url": "/about"
-        },
-        {
-          "name": "Troubleshooting",
-          "url": "/"
-        }
-      ]
-    },
-    "company": {
-      "title": "Resources",
-      "links": [
-        {
-          "name": "Documentation Hub",
-          "url": "/docs/"
-        },
-        {
-          "name": "Theme Gallery",
-          "url": "/"
-        },
-        {
-          "name": "Best Practices",
-          "url": "/"
-        },
-        {
-          "name": "Performance Tips",
-          "url": "/"
-        },
-        {
-          "name": "Migration Guide",
-          "url": "/"
+          "name": "Contributing",
+          "url": "/claudeDocugen/developers/contributing/"
         }
       ]
     }
