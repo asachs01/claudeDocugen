@@ -462,8 +462,8 @@ browser_launch: { headless: false, viewport: { width: 1280, height: 720 } }
 # Navigate to starting URL
 browser_navigate: { url: "https://example.com" }
 
-# Take screenshot at native resolution
-browser_screenshot: { path: "step-01.png", fullPage: false }
+# Take screenshot at CSS resolution (ALWAYS use scale: "css"!)
+browser_screenshot: { path: "step-01.png", scale: "css", fullPage: false }
 ```
 
 ### Element Interaction and Metadata Capture
@@ -595,16 +595,18 @@ Store viewport in session metadata for validation:
 
 For each user-directed action:
 
-1. **Identify target element** using Playwright selectors
-2. **Capture element metadata** (selector, text, ARIA, bounds)
-3. **Take pre-action screenshot**
+1. **Wait for page stability** (`networkidle` or animations complete)
+2. **Identify target element** using Playwright selectors
+3. **ATOMIC CAPTURE** (do these together, no delays!):
+   - Capture element metadata (selector, text, ARIA, boundingBox)
+   - Take pre-action screenshot with `scale: "css"`
 4. **Execute action** via appropriate Playwright tool:
    - `browser_click`: Click interactions
    - `browser_type`: Text input
    - `browser_select`: Dropdown selection
    - `browser_scroll`: Scroll actions
 5. **Wait for network idle** or specified condition
-6. **Take post-action screenshot**
+6. **Take post-action screenshot** with `scale: "css"`
 7. **Compare with SSIM** to detect step boundary
 8. **Record DOM mutations** if significant
 
@@ -614,14 +616,17 @@ For each user-directed action:
 User: "Document creating a new GitHub repository"
 
 1. browser_navigate: https://github.com/new
-2. browser_screenshot: step-01-before.png
+2. Wait for networkidle
 3. [User says: "Enter repository name 'my-project'"]
-4. Capture metadata for input#repository-name
-5. browser_type: { selector: "input#repository-name", text: "my-project" }
-6. browser_screenshot: step-01-after.png
-7. Run detect_step.py step-01-before.png step-01-after.png
-8. If significant change: record as Step 1
-9. Continue with next action...
+4. ATOMIC: Capture metadata for input#repository-name (boundingBox, text, ARIA)
+5. ATOMIC: browser_screenshot: { path: "step-01-before.png", scale: "css" }
+   ↑ Steps 4-5 must happen with NO page changes between them!
+6. browser_type: { selector: "input#repository-name", text: "my-project" }
+7. Wait for networkidle
+8. browser_screenshot: { path: "step-01-after.png", scale: "css" }
+9. Run detect_step.py step-01-before.png step-01-after.png
+10. If significant change: record as Step 1
+11. Continue with next action...
 ```
 
 ## Scripts Reference
