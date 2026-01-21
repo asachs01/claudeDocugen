@@ -7,7 +7,7 @@
       "placeholder": "Search GitHub",
       "ariaLabel": "Search GitHub",
       "role": "textbox",
-      "boundingBox": {"x": 97, "y": 135, "width": 590, "height": 44}
+      "boundingBox": {"x": 95, "y": 163, "width": 588, "height": 44}
     }
   ]
 }
