@@ -56,13 +56,22 @@
 }
 
 /* Feature cards - ensure readable text */
-[data-theme='dark'] article {
+[data-theme='dark'] article,
+[data-theme='dark'] .card {
 	background-color: #1e293b;
 	border: 1px solid #475569;
 }
 
-[data-theme='dark'] article p {
-	color: #e2e8f0;
+[data-theme='dark'] article p,
+[data-theme='dark'] .card p,
+[data-theme='dark'] .sl-card p {
+	color: #f1f5f9 !important;
+}
+
+/* Card titles should be bright */
+[data-theme='dark'] article p:first-child,
+[data-theme='dark'] .card-title {
+	color: #ffffff !important;
 }
 
 /* Code block styling */
@@ -133,7 +142,21 @@
 	font-weight: 500;
 }
 
-/* Style the command text specifically */
-[data-theme='dark'] .expressive-code span {
-	filter: brightness(1.2);
+/* Force high contrast code text in dark mode */
+[data-theme='dark'] .expressive-code pre code,
+[data-theme='dark'] .expressive-code .ec-line,
+[data-theme='dark'] figure.frame pre code {
+	color: #f1f5f9 !important;
+}
+
+/* Terminal/bash specific - force white text */
+[data-theme='dark'] .expressive-code.is-terminal pre code,
+[data-theme='dark'] figure.frame.is-terminal pre code,
+[data-theme='dark'] figure.frame.is-terminal .ec-line {
+	color: #ffffff !important;
+}
+
+/* Override any muted syntax highlighting in dark mode */
+[data-theme='dark'] .expressive-code span[style*="color"] {
+	filter: brightness(1.3) !important;
 }
