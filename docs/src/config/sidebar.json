@@ -1,0 +1,76 @@
+{
+  "main": [
+    {
+      "label": "Getting Started",
+      "items": [
+        {
+          "label": "[rocket] Quick Start",
+          "slug": "getting-started"
+        },
+        {
+          "label": "[download] Installation",
+          "slug": "getting-started/installation"
+        },
+        {
+          "label": "[play] Your First Workflow",
+          "slug": "getting-started/first-workflow"
+        }
+      ]
+    },
+    {
+      "label": "Guides",
+      "items": [
+        {
+          "label": "[video] Recording Workflows",
+          "slug": "guides/recording"
+        },
+        {
+          "label": "[image] Screenshot Annotation",
+          "slug": "guides/annotation"
+        },
+        {
+          "label": "[document] Using Templates",
+          "slug": "guides/templates"
+        },
+        {
+          "label": "[users] Audience Adaptation",
+          "slug": "guides/audiences"
+        }
+      ]
+    },
+    {
+      "label": "Reference",
+      "items": [
+        {
+          "label": "[api] Skill API",
+          "slug": "reference/skill-api"
+        },
+        {
+          "label": "[code] Python Scripts",
+          "slug": "reference/scripts"
+        },
+        {
+          "label": "[setting] Configuration",
+          "slug": "reference/configuration"
+        }
+      ]
+    },
+    {
+      "label": "Developers",
+      "items": [
+        {
+          "label": "[puzzle] Architecture",
+          "slug": "developers/architecture"
+        },
+        {
+          "label": "[pencil] Extending DocuGen",
+          "slug": "developers/extending"
+        },
+        {
+          "label": "[heart] Contributing",
+          "slug": "developers/contributing"
+        }
+      ]
+    }
+  ]
+}

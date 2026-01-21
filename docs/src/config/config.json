@@ -1,0 +1,29 @@
+{
+  "site": {
+    "title": "DocuGen",
+    "logo": "/src/assets/logo-light.svg",
+    "logo_darkmode": "/src/assets/logo-dark.svg",
+    "logo_width": "127",
+    "logo_height": "32",
+    "logo_text": "DocuGen"
+  },
+
+  "settings": {
+    "search": true,
+    "theme_switcher": true
+  },
+
+  "params": {
+    "footer_contact": {
+      "enable": false,
+      "action": "#"
+    },
+    "copyright": "DocuGen is open source under the MIT License. <a class=\"text-primary hover:underline no-underline\" href=\"https://github.com/asachs01/claudeDocugen\" target=\"_blank\" rel=\"noopener\" aria-label=\"GitHub\">View on GitHub</a>"
+  },
+
+  "navigation_button": {
+    "enable": true,
+    "label": "Get Started",
+    "link": "/getting-started/"
+  }
+}

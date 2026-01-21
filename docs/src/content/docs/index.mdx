@@ -1,22 +1,21 @@
 ---
-title: DocuGen
-description: AI-powered documentation generator for web workflows
+title: DocuGen - AI-Powered Documentation Generator
+description: Transform web workflows into professional documentation with annotated screenshots and contextual explanations.
 template: splash
 hero:
+  title: |
+    AI-Powered
+    <span class="light-text">Documentation Generator</span>
   tagline: Transform web workflows into professional documentation with annotated screenshots and contextual explanations.
-  actions:
-    - text: Get Started
-      link: /claudeDocugen/getting-started/
-      icon: right-arrow
-    - text: View on GitHub
-      link: https://github.com/asachs01/claudeDocugen
-      icon: external
-      variant: minimal
 ---
 
-import { Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import Section from "~/components/Section.astro";
+import Card from "~/components/user-components/NewCard.astro";
+import Grid from "~/components/user-components/Grid.astro";
+import LinkButton from "~/components/LinkButton.astro";
+import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-## Install in 30 seconds
+<Section title="Install in <span class='light-text'>30 seconds</span>" description="One command to get started. No configuration required.">
 
 <Tabs>
   <TabItem label="macOS / Linux">
@@ -31,32 +30,37 @@ import { Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
   </TabItem>
 </Tabs>
 
-## Why DocuGen?
+</Section>
 
-<CardGrid stagger>
-	<Card title="Semantic Understanding" icon="star">
-		Not just "click here" — DocuGen explains *why* each step matters, producing documentation that reads like it was written by an expert technical writer.
-	</Card>
-	<Card title="Annotated Screenshots" icon="pencil">
-		Automatic highlight boxes, arrows, numbered callouts, and click indicators. Sensitive data is auto-blurred.
-	</Card>
-	<Card title="Professional Structure" icon="document">
-		Prerequisites, numbered steps with expected results, and auto-generated troubleshooting sections.
-	</Card>
-	<Card title="Audience Adaptation" icon="group">
-		Generate beginner, intermediate, or expert versions from a single recording. Adjust verbosity and detail level.
-	</Card>
-	<Card title="Dead Simple Install" icon="rocket">
-		One command. No package managers, no configuration files. Just works.
-	</Card>
-	<Card title="Open Source" icon="github">
-		MIT licensed. Extend with custom templates, annotation styles, and processing scripts.
-	</Card>
-</CardGrid>
+<Section title="Why DocuGen?" description="Features that make documentation effortless.">
 
-## Try it now
+<Grid columns={3}>
+  <Card title="Semantic Understanding" icon="seti:markdown" iconColor="#7BE1A4">
+    Not just "click here" — DocuGen explains *why* each step matters, producing documentation that reads like it was written by an expert technical writer.
+  </Card>
+  <Card title="Annotated Screenshots" icon="seti:image" iconColor="#FF8585">
+    Automatic highlight boxes, arrows, numbered callouts, and click indicators. Sensitive data is auto-blurred.
+  </Card>
+  <Card title="Professional Structure" icon="seti:notebook" iconColor="#FFD97B">
+    Prerequisites, numbered steps with expected results, and auto-generated troubleshooting sections.
+  </Card>
+</Grid>
 
-In Claude Code or Claude.ai:
+<Grid columns={3}>
+  <Card title="Audience Adaptation" icon="seti:person" iconColor="#979BFF">
+    Generate beginner, intermediate, or expert versions from a single recording. Adjust verbosity and detail level.
+  </Card>
+  <Card title="Dead Simple Install" icon="seti:rocket" iconColor="#7BE1A4">
+    One command. No package managers, no configuration files. Just works.
+  </Card>
+  <Card title="Open Source" icon="github" iconColor="#FF8585">
+    MIT licensed. Extend with custom templates, annotation styles, and processing scripts.
+  </Card>
+</Grid>
+
+</Section>
+
+<Section title="Try it now" description="In Claude Code or Claude.ai:">
 
 ```
 Document this workflow: Create a new GitHub repository
@@ -65,7 +69,9 @@ Starting URL: https://github.com/new
 
 DocuGen will guide you through recording, then generate complete documentation.
 
-## What you get
+</Section>
+
+<Section title="What you get" description="Professional markdown documentation with images.">
 
 ```markdown
 # Create a New GitHub Repository
@@ -88,19 +94,34 @@ Enter `my-project` in the **Repository name** field.
 ...
 ```
 
-## Next steps
+</Section>
 
-<CardGrid>
-	<Card title="Quick Start" icon="rocket">
-		[Get up and running](/claudeDocugen/getting-started/) in under 5 minutes.
-	</Card>
-	<Card title="Your First Workflow" icon="puzzle">
-		[Step-by-step tutorial](/claudeDocugen/getting-started/first-workflow/) for recording your first documentation.
-	</Card>
-	<Card title="Reference" icon="open-book">
-		[Complete API reference](/claudeDocugen/reference/skill-api/) for all parameters and options.
-	</Card>
-	<Card title="Extend" icon="add-document">
-		[Create custom templates](/claudeDocugen/developers/extending/) and annotation styles.
-	</Card>
-</CardGrid>
+<Section title="Next steps" description="Ready to get started?">
+
+<Grid columns={2}>
+  <Card title="Quick Start" icon="seti:vite" iconColor="#7BE1A4">
+    Get up and running in under 5 minutes.
+
+    <LinkButton href="/claudeDocugen/getting-started/" variant="text" className="mt-4">Get Started</LinkButton>
+  </Card>
+  <Card title="Your First Workflow" icon="seti:play" iconColor="#FFD97B">
+    Step-by-step tutorial for recording your first documentation.
+
+    <LinkButton href="/claudeDocugen/getting-started/first-workflow/" variant="text" className="mt-4">Start Tutorial</LinkButton>
+  </Card>
+</Grid>
+
+<Grid columns={2}>
+  <Card title="Reference" icon="seti:notebook" iconColor="#979BFF">
+    Complete API reference for all parameters and options.
+
+    <LinkButton href="/claudeDocugen/reference/skill-api/" variant="text" className="mt-4">View Reference</LinkButton>
+  </Card>
+  <Card title="Extend" icon="seti:plan" iconColor="#FF8585">
+    Create custom templates and annotation styles.
+
+    <LinkButton href="/claudeDocugen/developers/extending/" variant="text" className="mt-4">Learn More</LinkButton>
+  </Card>
+</Grid>
+
+</Section>
