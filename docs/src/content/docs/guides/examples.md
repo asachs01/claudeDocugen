@@ -30,6 +30,16 @@ The search box is automatically highlighted with a numbered callout and click in
 
 The target element (first search result) is highlighted with an arrow pointing to it.
 
+### Smart Annotation Features
+
+DocuGen's smart annotations automatically:
+- **Detect the target element** from Playwright's element metadata
+- **Draw highlight boxes** around interactive elements
+- **Add numbered callouts** positioned to avoid overlapping content
+- **Show click indicators** for buttons, links, and inputs
+- **Draw arrows** for small or hard-to-find elements
+- **Handle HiDPI displays** with automatic scale factor detection
+
 ### What DocuGen Generated
 
 DocuGen produced this complete markdown documentation:

@@ -60,6 +60,8 @@ Smart mode automatically:
 | `--no-smart` | - | Disable smart annotation, use manual mode |
 | `--step` | `number` | Step number for smart callout (default: 1) |
 | `--elements` | `path` | Element metadata JSON (from Playwright) |
+| `--scale` | `number` | Scale factor for coordinates (devicePixelRatio) |
+| `--auto-scale` | - | Auto-detect scale factor from bounding boxes |
 | `--box` | `x,y,w,h` | Draw highlight box |
 | `--arrow` | `x1,y1,x2,y2` | Draw arrow |
 | `--callout` | `x,y,number` | Numbered callout |
@@ -68,12 +70,33 @@ Smart mode automatically:
 | `--style` | `path` | Custom style JSON |
 | `--auto-blur` | - | Auto-detect sensitive fields |
 
+### HiDPI Display Support
+
+Playwright's `boundingBox()` returns CSS pixels, but screenshots may be captured at device pixel ratio (e.g., 2x on Retina displays). Use `--scale` to align annotations correctly:
+
+```bash
+# Explicit scale factor (e.g., 2.0 for Retina)
+python annotate_screenshot.py screenshot.png output.png \
+  --elements elements.json --scale 2.0
+
+# Auto-detect scale factor
+python annotate_screenshot.py screenshot.png output.png \
+  --elements elements.json --auto-scale
+```
+
+**Recommended:** Capture screenshots at CSS scale in Playwright to avoid coordinate mismatch:
+```
+browser_screenshot: { path: "step-01.png", scale: "css" }
+```
+
 ### Element Metadata Format
 
 The `--elements` JSON should contain element data captured by Playwright:
 
 ```json
 {
+  "devicePixelRatio": 2.0,
+  "viewport": {"width": 1280, "height": 720},
   "elements": [
     {
       "isTarget": true,
@@ -85,6 +108,8 @@ The `--elements` JSON should contain element data captured by Playwright:
   ]
 }
 ```
+
+> **Note:** Include `devicePixelRatio` if screenshots are captured at device pixel scale. Use `--scale` with this value, or `--auto-scale` to detect automatically.
 
 Target element detection priority:
 1. Element marked `isTarget: true` or `focused: true`
