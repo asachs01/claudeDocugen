@@ -1,0 +1,43 @@
+{
+  "title": "Search for Repositories on GitHub",
+  "description": "Learn how to use GitHub's search feature to find repositories, code, and projects. GitHub search supports advanced filters and syntax for precise results.",
+  "prerequisites": [
+    "Web browser with internet access",
+    "GitHub account (optional, but recommended for saving searches)"
+  ],
+  "steps": [
+    {
+      "number": 1,
+      "title": "Navigate to GitHub Search",
+      "description": "GitHub's dedicated search page provides a clean interface for finding repositories, code, issues, and more. The search box accepts both simple queries and advanced syntax.",
+      "action": "Navigate to search page",
+      "screenshot": "./step-01-annotated.png",
+      "expected_result": "The GitHub search page loads with an empty search box ready for input."
+    },
+    {
+      "number": 2,
+      "title": "Enter your search query",
+      "description": "Type keywords that describe what you're looking for. GitHub searches repository names, descriptions, README files, and code by default.",
+      "action": "Type search query",
+      "screenshot": "./step-02-annotated.png",
+      "expected_result": "Search results appear showing matching repositories sorted by best match. The sidebar shows filters for narrowing results by type, language, and more."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "issue": "No results found",
+      "description": "Your search terms may be too specific or contain typos.",
+      "resolution": "Try broader keywords, check spelling, or use GitHub's search syntax like `in:readme` to search specific fields."
+    },
+    {
+      "issue": "Too many results",
+      "description": "Generic search terms return thousands of results.",
+      "resolution": "Use filters in the sidebar (language, stars, recently updated) or add qualifiers like `stars:>100` to your query."
+    },
+    {
+      "issue": "Can't find code snippets",
+      "description": "By default, search returns repositories, not code.",
+      "resolution": "Click 'Code' in the left sidebar or add `type:code` to your search query."
+    }
+  ]
+}

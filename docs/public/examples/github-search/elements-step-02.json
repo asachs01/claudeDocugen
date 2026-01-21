@@ -1,0 +1,11 @@
+{
+  "elements": [
+    {
+      "isTarget": true,
+      "tagName": "a",
+      "text": "asyncapi/generator",
+      "role": "link",
+      "boundingBox": {"x": 316, "y": 152, "width": 170, "height": 24}
+    }
+  ]
+}

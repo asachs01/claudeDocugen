@@ -35,6 +35,10 @@
         {
           "label": "[users] Audience Adaptation",
           "slug": "guides/audiences"
+        },
+        {
+          "label": "[star] Example Prompts",
+          "slug": "guides/examples"
         }
       ]
     },

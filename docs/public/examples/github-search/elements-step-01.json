@@ -1,0 +1,13 @@
+{
+  "elements": [
+    {
+      "isTarget": true,
+      "tagName": "input",
+      "text": "",
+      "placeholder": "Search GitHub",
+      "ariaLabel": "Search GitHub",
+      "role": "textbox",
+      "boundingBox": {"x": 97, "y": 135, "width": 590, "height": 44}
+    }
+  ]
+}
