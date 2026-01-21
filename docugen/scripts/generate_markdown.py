@@ -722,7 +722,13 @@ def main():
     parser.add_argument(
         '--pdf',
         action='store_true',
-        help='Generate PDF output in addition to markdown'
+        default=True,
+        help='Generate PDF output in addition to markdown (default: enabled)'
+    )
+    parser.add_argument(
+        '--no-pdf',
+        action='store_true',
+        help='Disable PDF generation'
     )
     parser.add_argument(
         '--pdf-only',
@@ -792,8 +798,9 @@ def main():
         args.output.write_text(output)
         print(f"Documentation generated: {args.output}")
 
-    # Generate PDF if requested
-    if args.pdf or args.pdf_only:
+    # Generate PDF by default (unless --no-pdf)
+    generate_pdf_output = (args.pdf or args.pdf_only) and not args.no_pdf
+    if generate_pdf_output:
         if not WEASYPRINT_AVAILABLE:
             print("Error: WeasyPrint not installed. Run: pip install weasyprint", file=sys.stderr)
             sys.exit(2)

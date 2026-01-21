@@ -572,7 +572,13 @@ def main():
     parser.add_argument(
         '--smart',
         action='store_true',
-        help='Smart auto-annotation: automatically detect target element, add highlight, callout, and blur sensitive data (requires --elements)'
+        default=True,
+        help='Smart auto-annotation: automatically detect target element, add highlight, callout, and blur sensitive data (default: enabled when --elements provided)'
+    )
+    parser.add_argument(
+        '--no-smart',
+        action='store_true',
+        help='Disable smart annotation, use manual coordinates only'
     )
     parser.add_argument(
         '--step',
@@ -596,11 +602,9 @@ def main():
     img = Image.open(args.input).convert('RGBA')
     draw = ImageDraw.Draw(img)
 
-    # Smart annotation mode - automatic everything
-    if args.smart:
-        if not args.elements:
-            print("Error: --smart requires --elements for element metadata", file=sys.stderr)
-            sys.exit(2)
+    # Smart annotation mode - automatic everything (default when --elements provided)
+    use_smart = args.smart and args.elements and not args.no_smart
+    if use_smart:
         if not args.elements.exists():
             print(f"Error: Elements file not found: {args.elements}", file=sys.stderr)
             sys.exit(2)

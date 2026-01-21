@@ -7,13 +7,14 @@ description: Customize how screenshots are annotated
 
 DocuGen automatically annotates screenshots with highlights, arrows, and callouts.
 
-## Smart Auto-Annotation (Recommended)
+## Smart Auto-Annotation (Default)
 
-**Zero configuration required!** Smart mode automatically detects what to annotate:
+**Zero configuration required!** Smart mode is enabled by default when you provide element metadata:
 
 ```bash
+# Just provide elements - smart mode is automatic
 python annotate_screenshot.py screenshot.png annotated.png \
-  --smart --elements elements.json --step 1
+  --elements elements.json --step 1
 ```
 
 Smart mode handles everything:

@@ -30,13 +30,18 @@ Adds visual annotations to screenshots. Features **smart auto-annotation** that 
 python annotate_screenshot.py <input> <output> [options]
 ```
 
-### Smart Mode (Recommended)
+### Smart Mode (Default)
 
-Zero-config annotation - just pass element metadata:
+Smart mode is **enabled by default** when you provide element metadata. Just pass the elements file:
 
 ```bash
+# Smart annotation is automatic with --elements
 python annotate_screenshot.py screenshot.png annotated.png \
-  --smart --elements elements.json --step 1
+  --elements elements.json --step 1
+
+# Disable smart mode if needed
+python annotate_screenshot.py screenshot.png annotated.png \
+  --elements elements.json --no-smart --box 100,200,150,40
 ```
 
 Smart mode automatically:
@@ -47,11 +52,12 @@ Smart mode automatically:
 - Adds click indicator for clickable elements
 - Auto-blurs sensitive fields (passwords, SSNs, etc.)
 
-### Manual Options
+### Options
 
 | Option | Format | Description |
 |--------|--------|-------------|
-| `--smart` | - | Smart auto-annotation (no config needed!) |
+| `--smart` | - | Smart auto-annotation (default: enabled with --elements) |
+| `--no-smart` | - | Disable smart annotation, use manual mode |
 | `--step` | `number` | Step number for smart callout (default: 1) |
 | `--elements` | `path` | Element metadata JSON (from Playwright) |
 | `--box` | `x,y,w,h` | Draw highlight box |
@@ -102,23 +108,27 @@ python generate_markdown.py <input.json> <output.md> [options]
 | `--embed-images` | - | Base64 embed images |
 | `--no-toc` | - | Disable table of contents |
 | `--zip` | - | Create zip package |
-| `--pdf` | - | Generate PDF in addition to markdown |
+| `--pdf` | - | Generate PDF in addition to markdown (default: enabled) |
+| `--no-pdf` | - | Disable PDF generation |
 | `--pdf-only` | - | Generate only PDF (no markdown) |
 | `--pdf-css` | - | Custom CSS file for PDF styling |
 
 ### PDF Generation
 
-Generate professional PDF documentation for importing into document management systems:
+PDF generation is **enabled by default**. Generate professional PDF documentation for importing into document management systems:
 
 ```bash
-# Generate both markdown and PDF
-python generate_markdown.py workflow.json output.md --pdf
+# Generate both markdown and PDF (default)
+python generate_markdown.py workflow.json output.md
 
-# Generate PDF only
+# Disable PDF, generate markdown only
+python generate_markdown.py workflow.json output.md --no-pdf
+
+# Generate PDF only (no markdown)
 python generate_markdown.py workflow.json output.md --pdf-only
 
 # Use custom styling
-python generate_markdown.py workflow.json output.md --pdf --pdf-css custom.css
+python generate_markdown.py workflow.json output.md --pdf-css custom.css
 ```
 
 Requires additional dependencies:
