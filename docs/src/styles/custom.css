@@ -107,3 +107,33 @@
 [data-theme='dark'] .hero-html p {
 	color: #cbd5e1;
 }
+
+/* Improve code block readability in dark mode */
+[data-theme='dark'] .expressive-code,
+[data-theme='dark'] pre[class*="language-"],
+[data-theme='dark'] code[class*="language-"],
+[data-theme='dark'] figure.frame {
+	--ec-frm-edBg: #1e293b;
+	--ec-codeBg: #1e293b;
+}
+
+[data-theme='dark'] .expressive-code pre code {
+	color: #e2e8f0;
+}
+
+/* Make code text more readable */
+[data-theme='dark'] .expressive-code .ec-line {
+	color: #f1f5f9;
+}
+
+/* Improve terminal/bash code block contrast */
+[data-theme='dark'] figure.frame.is-terminal .frame-content pre code,
+[data-theme='dark'] figure.frame pre code {
+	color: #f1f5f9;
+	font-weight: 500;
+}
+
+/* Style the command text specifically */
+[data-theme='dark'] .expressive-code span {
+	filter: brightness(1.2);
+}
