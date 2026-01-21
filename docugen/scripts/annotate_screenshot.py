@@ -20,6 +20,8 @@ Options:
     --style <style_file>   Load custom styles from JSON
     --elements <json>      Element metadata for auto-blur detection
     --auto-blur            Auto-detect and blur sensitive fields
+    --smart                Smart auto-annotation (no config required!)
+    --step <n>             Step number for smart annotation callout
 
 Dependencies:
     - PIL/Pillow
@@ -328,6 +330,214 @@ def draw_click_indicator(
         draw.text((x + inner_r + 2, y - 6), "R", fill=color[:3], font=font)
 
 
+def smart_annotate(
+    img: Image.Image,
+    draw: ImageDraw.Draw,
+    elements: List[Dict[str, Any]],
+    step_number: int,
+    styles: dict
+) -> Image.Image:
+    """
+    Smart auto-annotation: automatically detect what to highlight and annotate.
+    Requires NO manual configuration - just pass element metadata from Playwright.
+
+    Smart detection logic:
+    1. Find the "target" element (highest z-index, focused, or has action)
+    2. Draw highlight box around target
+    3. Add callout with step number
+    4. Auto-blur any sensitive fields
+    5. Optionally add arrow for small/hard-to-find elements
+
+    Args:
+        img: PIL Image object
+        draw: PIL ImageDraw object
+        elements: Element metadata from Playwright capture
+        step_number: Step number for callout
+        styles: Style configuration
+
+    Returns:
+        Modified image with smart annotations
+    """
+    if not elements:
+        return img
+
+    # Find the target element (the one being interacted with)
+    target = find_target_element(elements)
+    if not target or 'boundingBox' not in target:
+        return img
+
+    bbox = target['boundingBox']
+    x = int(bbox.get('x', 0))
+    y = int(bbox.get('y', 0))
+    w = int(bbox.get('width', 0))
+    h = int(bbox.get('height', 0))
+
+    # Skip if element is too small to be meaningful
+    if w < 5 or h < 5:
+        return img
+
+    # Auto-blur sensitive fields first
+    blur_regions = detect_sensitive_fields(elements)
+    for coords in blur_regions:
+        img = blur_region(img, coords, styles)
+        draw = ImageDraw.Draw(img)
+
+    # Draw highlight box around target element
+    draw_highlight_box(draw, (x, y, w, h), styles)
+
+    # Determine optimal callout position
+    img_width, img_height = img.size
+    callout_pos = calculate_callout_position(x, y, w, h, img_width, img_height, styles)
+
+    # Draw callout
+    draw_callout(img, draw, callout_pos, step_number, styles)
+
+    # Draw arrow from callout to element for small elements
+    if w < 100 or h < 30:
+        # Point arrow to center of element
+        element_center = (x + w // 2, y + h // 2)
+        draw_arrow(draw, callout_pos, element_center, styles)
+
+    # Add click indicator if this is a clickable element
+    if is_clickable_element(target):
+        click_pos = (x + w // 2, y + h // 2)
+        draw_click_indicator(img, draw, click_pos, styles, 'single')
+
+    return img
+
+
+def find_target_element(elements: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """
+    Identify the target element from a list of captured elements.
+
+    Priority order:
+    1. Element marked as 'target' or 'focused'
+    2. Element with an action (clicked, typed, etc.)
+    3. Element with highest z-index
+    4. First interactive element (button, input, link)
+    5. First element with bounding box
+
+    Args:
+        elements: List of element metadata
+
+    Returns:
+        Target element dict or None
+    """
+    # Look for explicitly marked target
+    for elem in elements:
+        if elem.get('isTarget') or elem.get('focused'):
+            return elem
+
+    # Look for element with action
+    for elem in elements:
+        if elem.get('action') or elem.get('clicked') or elem.get('typed'):
+            return elem
+
+    # Sort by z-index if available
+    with_zindex = [e for e in elements if 'zIndex' in e]
+    if with_zindex:
+        return max(with_zindex, key=lambda e: int(e.get('zIndex', 0)))
+
+    # Look for interactive elements
+    interactive_tags = {'button', 'input', 'a', 'select', 'textarea'}
+    interactive_roles = {'button', 'link', 'textbox', 'checkbox', 'radio', 'combobox'}
+
+    for elem in elements:
+        tag = elem.get('tagName', '').lower()
+        role = elem.get('role', '').lower()
+        if tag in interactive_tags or role in interactive_roles:
+            return elem
+
+    # Fall back to first element with bounding box
+    for elem in elements:
+        if 'boundingBox' in elem:
+            return elem
+
+    return None
+
+
+def calculate_callout_position(
+    x: int, y: int, w: int, h: int,
+    img_width: int, img_height: int,
+    styles: dict
+) -> Tuple[int, int]:
+    """
+    Calculate optimal callout position relative to target element.
+    Avoids placing callout outside image bounds or overlapping the element.
+
+    Args:
+        x, y, w, h: Element bounding box
+        img_width, img_height: Image dimensions
+        styles: Style config (for callout size)
+
+    Returns:
+        (x, y) position for callout center
+    """
+    callout_radius = styles.get('callout_size', 24) // 2
+    padding = 10
+
+    # Preferred position: top-left of element, offset outward
+    callout_x = x - callout_radius - padding
+    callout_y = y - callout_radius - padding
+
+    # Adjust if too close to left edge
+    if callout_x < callout_radius + padding:
+        # Place to the right of element instead
+        callout_x = x + w + callout_radius + padding
+
+    # Adjust if too close to top
+    if callout_y < callout_radius + padding:
+        # Place below instead
+        callout_y = y + h + callout_radius + padding
+
+    # Adjust if off right edge
+    if callout_x > img_width - callout_radius - padding:
+        callout_x = x - callout_radius - padding
+
+    # Adjust if off bottom
+    if callout_y > img_height - callout_radius - padding:
+        callout_y = y - callout_radius - padding
+
+    # Final bounds check
+    callout_x = max(callout_radius + 5, min(img_width - callout_radius - 5, callout_x))
+    callout_y = max(callout_radius + 5, min(img_height - callout_radius - 5, callout_y))
+
+    return (callout_x, callout_y)
+
+
+def is_clickable_element(element: Dict[str, Any]) -> bool:
+    """
+    Determine if an element is clickable based on its metadata.
+
+    Args:
+        element: Element metadata dict
+
+    Returns:
+        True if element appears to be clickable
+    """
+    # Check for click action
+    if element.get('clicked') or element.get('action') == 'click':
+        return True
+
+    # Check tag name
+    clickable_tags = {'button', 'a', 'input', 'select'}
+    tag = element.get('tagName', '').lower()
+    if tag in clickable_tags:
+        return True
+
+    # Check role
+    clickable_roles = {'button', 'link', 'checkbox', 'radio', 'menuitem', 'tab'}
+    role = element.get('role', '').lower()
+    if role in clickable_roles:
+        return True
+
+    # Check for onclick attribute
+    if element.get('onclick') or element.get('hasClickHandler'):
+        return True
+
+    return False
+
+
 def parse_coords(coord_str: str) -> Tuple[int, ...]:
     """Parse comma-separated coordinates string."""
     return tuple(int(x.strip()) for x in coord_str.split(','))
@@ -359,6 +569,17 @@ def main():
         action='store_true',
         help='Auto-detect and blur sensitive fields (requires --elements)'
     )
+    parser.add_argument(
+        '--smart',
+        action='store_true',
+        help='Smart auto-annotation: automatically detect target element, add highlight, callout, and blur sensitive data (requires --elements)'
+    )
+    parser.add_argument(
+        '--step',
+        type=int,
+        default=1,
+        help='Step number for smart annotation callout (default: 1)'
+    )
 
     args = parser.parse_args()
 
@@ -374,6 +595,31 @@ def main():
     styles = load_styles(args.style)
     img = Image.open(args.input).convert('RGBA')
     draw = ImageDraw.Draw(img)
+
+    # Smart annotation mode - automatic everything
+    if args.smart:
+        if not args.elements:
+            print("Error: --smart requires --elements for element metadata", file=sys.stderr)
+            sys.exit(2)
+        if not args.elements.exists():
+            print(f"Error: Elements file not found: {args.elements}", file=sys.stderr)
+            sys.exit(2)
+
+        with open(args.elements) as f:
+            elements_data = json.load(f)
+            if isinstance(elements_data, list):
+                elements = elements_data
+            else:
+                elements = elements_data.get('elements', [])
+
+        img = smart_annotate(img, draw, elements, args.step, styles)
+
+        # Save and exit - smart mode handles everything
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        img = img.convert('RGB')
+        img.save(args.output, optimize=True)
+        print(f"Smart annotated image saved: {args.output}")
+        return
 
     # Auto-detect sensitive fields if requested (FR-2.5)
     auto_blur_regions = []

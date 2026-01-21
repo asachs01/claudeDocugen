@@ -10,6 +10,8 @@
     Install to custom directory (default: ~/.claude/skills/docugen)
 .PARAMETER Update
     Update existing installation
+.PARAMETER Pdf
+    Install PDF generation support (weasyprint, markdown)
 .EXAMPLE
     irm https://raw.githubusercontent.com/asachs01/claudeDocugen/main/install.ps1 | iex
 .EXAMPLE
@@ -20,6 +22,7 @@ param(
     [switch]$NoDeps,
     [string]$Path = "$env:USERPROFILE\.claude\skills\docugen",
     [switch]$Update,
+    [switch]$Pdf,
     [switch]$Help
 )
 
@@ -53,6 +56,7 @@ function Show-Help {
     Write-Host "  -NoDeps     Skip Python dependency installation"
     Write-Host "  -Path DIR   Install to custom directory"
     Write-Host "  -Update     Update existing installation"
+    Write-Host "  -Pdf        Install PDF generation support (weasyprint, markdown)"
     Write-Host "  -Help       Show this help message"
     exit 0
 }
@@ -179,6 +183,20 @@ function New-VirtualEnvironment {
     } catch {
         Write-ColorOutput "  x Failed to install dependencies" "Red"
         exit 1
+    }
+
+    # Install PDF support if requested
+    if ($Pdf) {
+        Write-ColorOutput "[5b/6] Installing PDF generation dependencies..." "Cyan"
+        Write-ColorOutput "  Note: WeasyPrint requires GTK3 on Windows." "Yellow"
+        Write-Host "  Install from: https://github.com/nickvergessen/msys2-gtk3-binaries"
+        Write-Host ""
+        try {
+            & $pipPath install --quiet markdown weasyprint 2>$null
+            Write-ColorOutput "  + Installed: markdown, weasyprint" "Green"
+        } catch {
+            Write-ColorOutput "  ! PDF dependencies failed. Install GTK3 and re-run with -Update -Pdf" "Yellow"
+        }
     }
 
     return $venvPath

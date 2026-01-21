@@ -52,6 +52,244 @@ try:
 except ImportError:
     JINJA2_AVAILABLE = False
 
+# Try to import markdown for HTML conversion
+try:
+    import markdown
+    MARKDOWN_AVAILABLE = True
+except ImportError:
+    MARKDOWN_AVAILABLE = False
+
+# Try to import WeasyPrint for PDF generation
+try:
+    from weasyprint import HTML, CSS
+    WEASYPRINT_AVAILABLE = True
+except ImportError:
+    WEASYPRINT_AVAILABLE = False
+
+
+PDF_CSS_TEMPLATE = """
+@page {
+    size: A4;
+    margin: 2cm;
+    @bottom-center {
+        content: "Page " counter(page) " of " counter(pages);
+        font-size: 10pt;
+        color: #666;
+    }
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    font-size: 11pt;
+    line-height: 1.6;
+    color: #333;
+    max-width: 100%;
+}
+
+h1 {
+    font-size: 24pt;
+    color: #1a1a1a;
+    border-bottom: 2px solid #007acc;
+    padding-bottom: 0.3em;
+    margin-top: 0;
+}
+
+h2 {
+    font-size: 18pt;
+    color: #333;
+    margin-top: 1.5em;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 0.2em;
+}
+
+h3 {
+    font-size: 14pt;
+    color: #444;
+    margin-top: 1.2em;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin: 1em 0;
+    page-break-inside: avoid;
+}
+
+pre, code {
+    background-color: #f5f5f5;
+    border-radius: 3px;
+    font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+    font-size: 10pt;
+}
+
+pre {
+    padding: 1em;
+    overflow-x: auto;
+    border: 1px solid #ddd;
+}
+
+code {
+    padding: 0.2em 0.4em;
+}
+
+pre code {
+    padding: 0;
+    background: none;
+}
+
+ul, ol {
+    padding-left: 1.5em;
+}
+
+li {
+    margin: 0.3em 0;
+}
+
+strong {
+    color: #1a1a1a;
+}
+
+blockquote {
+    border-left: 4px solid #007acc;
+    margin: 1em 0;
+    padding: 0.5em 1em;
+    background-color: #f8f9fa;
+    color: #666;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid #ddd;
+    margin: 2em 0;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 0.5em;
+    text-align: left;
+}
+
+th {
+    background-color: #f5f5f5;
+    font-weight: bold;
+}
+
+.toc {
+    background-color: #f8f9fa;
+    padding: 1em;
+    border-radius: 4px;
+    margin: 1em 0;
+}
+
+.toc ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.toc li {
+    margin: 0.2em 0;
+}
+
+.toc a {
+    color: #007acc;
+    text-decoration: none;
+}
+"""
+
+
+def markdown_to_html(markdown_content: str, embed_css: bool = True) -> str:
+    """
+    Convert markdown content to HTML.
+
+    Args:
+        markdown_content: Markdown string
+        embed_css: If True, include CSS styles in the HTML
+
+    Returns:
+        HTML string
+    """
+    if not MARKDOWN_AVAILABLE:
+        raise ImportError("markdown library required. Install with: pip install markdown")
+
+    # Convert markdown to HTML with extensions
+    html_body = markdown.markdown(
+        markdown_content,
+        extensions=[
+            'tables',
+            'fenced_code',
+            'codehilite',
+            'toc',
+            'nl2br'
+        ]
+    )
+
+    # Wrap in full HTML document
+    css = PDF_CSS_TEMPLATE if embed_css else ""
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation</title>
+    <style>
+{css}
+    </style>
+</head>
+<body>
+{html_body}
+</body>
+</html>"""
+
+    return html
+
+
+def generate_pdf(
+    markdown_content: str,
+    output_path: Path,
+    custom_css: str = None,
+    base_url: str = None
+) -> Path:
+    """
+    Generate PDF from markdown content (FR-3.6 export capability).
+
+    Args:
+        markdown_content: Markdown string to convert
+        output_path: Path to save PDF file
+        custom_css: Optional custom CSS to override defaults
+        base_url: Base URL for resolving relative image paths
+
+    Returns:
+        Path to generated PDF file
+    """
+    if not WEASYPRINT_AVAILABLE:
+        raise ImportError(
+            "WeasyPrint required for PDF generation. "
+            "Install with: pip install weasyprint"
+        )
+
+    # Convert markdown to HTML
+    html_content = markdown_to_html(markdown_content, embed_css=True)
+
+    # Create PDF
+    html_doc = HTML(string=html_content, base_url=base_url)
+
+    stylesheets = []
+    if custom_css:
+        stylesheets.append(CSS(string=custom_css))
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    html_doc.write_pdf(output_path, stylesheets=stylesheets)
+
+    return output_path
+
 
 def encode_image_base64(image_path: Path) -> str:
     """
@@ -481,6 +719,21 @@ def main():
         action='store_true',
         help='Create a zip package with markdown and images'
     )
+    parser.add_argument(
+        '--pdf',
+        action='store_true',
+        help='Generate PDF output in addition to markdown'
+    )
+    parser.add_argument(
+        '--pdf-only',
+        action='store_true',
+        help='Generate only PDF output (no markdown file)'
+    )
+    parser.add_argument(
+        '--pdf-css',
+        type=Path,
+        help='Custom CSS file for PDF styling'
+    )
 
     args = parser.parse_args()
 
@@ -533,10 +786,46 @@ def main():
         print(f"Error: Unknown template: {args.template}", file=sys.stderr)
         sys.exit(2)
 
-    # Write output
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(output)
-    print(f"Documentation generated: {args.output}")
+    # Write markdown output (unless pdf-only)
+    if not args.pdf_only:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(output)
+        print(f"Documentation generated: {args.output}")
+
+    # Generate PDF if requested
+    if args.pdf or args.pdf_only:
+        if not WEASYPRINT_AVAILABLE:
+            print("Error: WeasyPrint not installed. Run: pip install weasyprint", file=sys.stderr)
+            sys.exit(2)
+
+        pdf_path = args.output.with_suffix('.pdf')
+
+        # Load custom CSS if provided
+        custom_css = None
+        if args.pdf_css and args.pdf_css.exists():
+            custom_css = args.pdf_css.read_text()
+
+        # For PDF, we need images embedded or accessible via base_url
+        # Re-generate with embedded images for PDF
+        if args.template == 'walkthrough':
+            pdf_markdown = generate_walkthrough(
+                data,
+                embed_images=True,
+                base_path=args.output.parent,
+                include_toc=not args.no_toc
+            )
+        elif args.template == 'quick_reference':
+            pdf_markdown = generate_quick_reference(data)
+        else:
+            pdf_markdown = output
+
+        generate_pdf(
+            pdf_markdown,
+            pdf_path,
+            custom_css=custom_css,
+            base_url=str(args.output.parent.absolute())
+        )
+        print(f"PDF generated: {pdf_path}")
 
     # Create zip package if requested
     if args.zip:

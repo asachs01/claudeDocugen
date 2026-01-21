@@ -7,6 +7,25 @@ description: Customize how screenshots are annotated
 
 DocuGen automatically annotates screenshots with highlights, arrows, and callouts.
 
+## Smart Auto-Annotation (Recommended)
+
+**Zero configuration required!** Smart mode automatically detects what to annotate:
+
+```bash
+python annotate_screenshot.py screenshot.png annotated.png \
+  --smart --elements elements.json --step 1
+```
+
+Smart mode handles everything:
+- Detects the target element from Playwright metadata
+- Draws highlight box around target
+- Adds numbered callout in optimal position
+- Draws arrow for small elements
+- Adds click indicator for buttons/links
+- Auto-blurs sensitive fields (passwords, SSNs, API keys)
+
+DocuGen passes element metadata automatically during workflow recording - you don't need to do anything special.
+
 ## Default annotations
 
 ### Highlight boxes

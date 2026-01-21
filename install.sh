@@ -7,6 +7,7 @@
 #   --no-deps    Skip Python dependency installation
 #   --path DIR   Install to custom directory (default: ~/.claude/skills/docugen)
 #   --update     Update existing installation
+#   --pdf        Install PDF generation support (requires system dependencies)
 #
 
 set -euo pipefail
@@ -22,6 +23,7 @@ NC='\033[0m' # No Color
 INSTALL_PATH="${HOME}/.claude/skills/docugen"
 INSTALL_DEPS=true
 UPDATE_MODE=false
+INSTALL_PDF=false
 REPO_URL="https://github.com/asachs01/claudeDocugen"
 RAW_URL="https://raw.githubusercontent.com/asachs01/claudeDocugen/main"
 
@@ -40,6 +42,10 @@ while [[ $# -gt 0 ]]; do
             UPDATE_MODE=true
             shift
             ;;
+        --pdf)
+            INSTALL_PDF=true
+            shift
+            ;;
         -h|--help)
             echo "DocuGen Installer"
             echo ""
@@ -49,6 +55,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --no-deps    Skip Python dependency installation"
             echo "  --path DIR   Install to custom directory"
             echo "  --update     Update existing installation"
+            echo "  --pdf        Install PDF generation support (weasyprint, markdown)"
             echo "  -h, --help   Show this help message"
             exit 0
             ;;
@@ -171,6 +178,20 @@ if [[ "$INSTALL_DEPS" == true ]]; then
     else
         echo -e "  ${RED}✗${NC} Failed to install dependencies"
         exit 1
+    fi
+
+    # Install PDF support if requested
+    if [[ "$INSTALL_PDF" == true ]]; then
+        echo -e "${BLUE}[5b/6]${NC} Installing PDF generation dependencies..."
+        echo -e "  ${YELLOW}Note:${NC} WeasyPrint requires system libraries. If this fails:"
+        echo "    macOS:  brew install pango"
+        echo "    Ubuntu: sudo apt install libpango-1.0-0 libpangocairo-1.0-0"
+        echo ""
+        if "${VENV_PATH}/bin/pip" install --quiet markdown weasyprint 2>/dev/null; then
+            echo -e "  ${GREEN}✓${NC} Installed: markdown, weasyprint"
+        else
+            echo -e "  ${YELLOW}⚠${NC} PDF dependencies failed. Install system libs and re-run with --update --pdf"
+        fi
     fi
 else
     echo -e "${BLUE}[4/6]${NC} Skipping virtual environment (--no-deps)"
