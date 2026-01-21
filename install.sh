@@ -141,10 +141,19 @@ download_file "assets/annotation_styles.json" "assets/annotation_styles.json"
 # Install Python dependencies
 if [[ "$INSTALL_DEPS" == true ]]; then
     echo -e "${BLUE}[4/5]${NC} Installing Python dependencies..."
-    if python3 -m pip install --quiet pillow scikit-image jinja2 numpy; then
+    # Use --user to avoid PEP 668 "externally managed environment" errors on macOS/Homebrew
+    if python3 -m pip install --user --quiet pillow scikit-image jinja2 numpy 2>/dev/null; then
+        echo -e "  ${GREEN}✓${NC} Installed: pillow, scikit-image, jinja2, numpy"
+    elif python3 -m pip install --quiet pillow scikit-image jinja2 numpy 2>/dev/null; then
+        # Fallback for systems without --user restriction
         echo -e "  ${GREEN}✓${NC} Installed: pillow, scikit-image, jinja2, numpy"
     else
-        echo -e "  ${YELLOW}⚠${NC} Some dependencies may have failed. You can install manually:"
+        echo -e "  ${YELLOW}⚠${NC} Could not install dependencies automatically."
+        echo "     Install manually with:"
+        echo "     pip install --user pillow scikit-image jinja2 numpy"
+        echo ""
+        echo "     Or use a virtual environment:"
+        echo "     python3 -m venv ~/.docugen-venv && source ~/.docugen-venv/bin/activate"
         echo "     pip install pillow scikit-image jinja2 numpy"
     fi
 else

@@ -152,11 +152,34 @@ function Install-PythonDependencies {
 
     Write-ColorOutput "[4/5] Installing Python dependencies..." "Cyan"
 
+    # Try --user first (handles PEP 668 restrictions), then fallback to system
+    $installed = $false
     try {
-        & $PythonPath -m pip install --quiet pillow scikit-image jinja2 numpy 2>$null
+        $result = & $PythonPath -m pip install --user --quiet pillow scikit-image jinja2 numpy 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            $installed = $true
+        }
+    } catch {}
+
+    if (-not $installed) {
+        try {
+            $result = & $PythonPath -m pip install --quiet pillow scikit-image jinja2 numpy 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                $installed = $true
+            }
+        } catch {}
+    }
+
+    if ($installed) {
         Write-ColorOutput "  ✓ Installed: pillow, scikit-image, jinja2, numpy" "Green"
-    } catch {
-        Write-ColorOutput "  ⚠ Some dependencies may have failed. Install manually:" "Yellow"
+    } else {
+        Write-ColorOutput "  ⚠ Could not install dependencies automatically." "Yellow"
+        Write-Host "     Install manually with:"
+        Write-Host "     pip install --user pillow scikit-image jinja2 numpy"
+        Write-Host ""
+        Write-Host "     Or use a virtual environment:"
+        Write-Host "     python -m venv $env:USERPROFILE\.docugen-venv"
+        Write-Host "     $env:USERPROFILE\.docugen-venv\Scripts\Activate.ps1"
         Write-Host "     pip install pillow scikit-image jinja2 numpy"
     }
 }

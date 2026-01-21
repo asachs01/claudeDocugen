@@ -144,6 +144,20 @@ Run with sudo (Unix) or as Administrator (Windows):
 sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/asachs01/claudeDocugen/main/install.sh)"
 ```
 
+### "externally-managed-environment" error (macOS/Homebrew)
+
+Modern Python installations (especially Homebrew on macOS) prevent system-wide pip installs. The installer handles this automatically with `--user`, but if you see this error:
+
+```bash
+# Option 1: Install to user directory
+pip install --user pillow scikit-image jinja2 numpy
+
+# Option 2: Use a virtual environment
+python3 -m venv ~/.docugen-venv
+source ~/.docugen-venv/bin/activate
+pip install pillow scikit-image jinja2 numpy
+```
+
 ### Dependencies fail to install
 
 Try installing in a virtual environment:
