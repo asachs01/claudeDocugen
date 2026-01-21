@@ -16,6 +16,20 @@ export default defineConfig({
 			editLink: {
 				baseUrl: 'https://github.com/asachs01/claudeDocugen/edit/main/docs/',
 			},
+			expressiveCode: {
+				themes: ['github-light', 'github-dark'],
+				styleOverrides: {
+					// Make code blocks more readable
+					codeBg: '#1e293b',
+					codeSelectionBg: '#475569',
+					borderColor: '#475569',
+					frames: {
+						terminalBackground: '#0f172a',
+						terminalTitlebarBackground: '#1e293b',
+						terminalTitlebarBorderBottom: '#475569',
+					},
+				},
+			},
 			sidebar: [
 				{
 					label: 'Getting Started',
