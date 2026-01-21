@@ -74,8 +74,94 @@ For each user action:
 ### Phase 3: Processing
 After recording completes:
 1. Run `detect_step.py` to finalize step boundaries
-2. Run `annotate_screenshot.py` to add visual annotations
-3. Run `process_images.py` to optimize file sizes
+2. **Interactive Redaction Review** (see below)
+3. Run `annotate_screenshot.py` to add visual annotations
+4. Run `process_images.py` to optimize file sizes
+
+### Interactive Redaction (User Prompts)
+
+Before annotating screenshots, prompt the user to review detected sensitive regions.
+Use `AskUserQuestion` to give users control over what gets redacted.
+
+#### Auto-Detection First
+
+Smart annotation auto-detects common sensitive fields:
+- Password fields (`type="password"`)
+- SSN, credit card, API key fields
+- Email and phone number inputs
+
+#### Prompt User for Confirmation
+
+After auto-detection, present findings to user:
+
+```
+AskUserQuestion:
+  question: "I detected 3 potentially sensitive fields to blur. Review?"
+  header: "Redaction"
+  options:
+    - label: "Show me what you found"
+      description: "Review auto-detected fields before blurring"
+    - label: "Blur all detected fields"
+      description: "Trust auto-detection and blur everything"
+    - label: "No redaction needed"
+      description: "Skip all blurring for this workflow"
+```
+
+#### If User Selects Review
+
+Present each detected field:
+
+```
+AskUserQuestion:
+  question: "Field: 'Password' input at coordinates (120, 340). Blur this?"
+  header: "Blur field?"
+  options:
+    - label: "Yes, blur it"
+      description: "Add blur to hide this content"
+    - label: "No, keep visible"
+      description: "This content is safe to show"
+    - label: "Blur all remaining"
+      description: "Skip review, blur everything else"
+```
+
+#### Custom Redaction Regions
+
+After auto-detection review, offer to add custom regions:
+
+```
+AskUserQuestion:
+  question: "Add any custom regions to blur?"
+  header: "Custom blur"
+  options:
+    - label: "Yes, let me specify"
+      description: "I'll describe regions that need blurring"
+    - label: "No, we're done"
+      description: "Proceed with current selections"
+```
+
+If user wants custom regions, prompt for description:
+- "Describe what to blur (e.g., 'the email address in the top right')"
+- Use element metadata to locate described content
+- Confirm coordinates before applying
+
+#### Redaction Session Data
+
+Track redaction decisions in session:
+
+```json
+{
+  "redactionReview": {
+    "autoDetected": [
+      {"field": "password", "coords": [120, 340, 200, 30], "approved": true},
+      {"field": "email", "coords": [120, 400, 200, 30], "approved": false}
+    ],
+    "customRegions": [
+      {"description": "company logo", "coords": [10, 10, 100, 50]}
+    ],
+    "userChoice": "reviewed"
+  }
+}
+```
 
 ### Phase 4: Generation
 1. Load `writing_style_guide.md` reference for quality standards
@@ -217,6 +303,15 @@ Generated documentation follows this structure:
 - `imageFormat`: png (default), jpg
 - `embedImages`: false (file references) or true (base64)
 - `includeTableOfContents`: true for 5+ steps
+- `generatePdf`: true (default) - Generate PDF alongside markdown
+
+### Redaction Options
+- `interactiveRedaction`: true (default) - Prompt user to review detected fields
+- `autoBlurSensitive`: true (default) - Auto-detect and blur sensitive fields
+- `redactionReviewMode`: "summary" | "each" | "none"
+  - `summary`: Show count of detected fields, ask to review
+  - `each`: Prompt for each detected field individually
+  - `none`: Auto-blur without prompting (use with caution)
 
 ## Audience Adaptation (US-4)
 
