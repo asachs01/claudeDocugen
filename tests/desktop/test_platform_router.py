@@ -71,38 +71,38 @@ class TestGetCaptureCapabilities(unittest.TestCase):
 class TestGetElementMetadata(unittest.TestCase):
     """Tests for get_element_metadata function."""
 
-    @patch("docugen.desktop.platform_router.get_accessibility_backend")
-    def test_returns_none_when_no_backend(self, mock_get_backend):
+    @patch("docugen.desktop.fallback_manager.get_element_metadata_with_fallback")
+    def test_returns_none_when_no_backend(self, mock_fallback):
         from docugen.desktop.platform_router import get_element_metadata
 
-        mock_get_backend.return_value = None
+        mock_fallback.return_value = None
         result = get_element_metadata(100, 200)
         self.assertIsNone(result)
 
-    @patch("docugen.desktop.platform_router.get_accessibility_backend")
-    def test_returns_element_with_source_tag(self, mock_get_backend):
+    @patch("docugen.desktop.fallback_manager.get_element_metadata_with_fallback")
+    def test_returns_element_with_source_tag(self, mock_fallback):
         from docugen.desktop.platform_router import get_element_metadata
+        from docugen.desktop.fallback_manager import ElementMetadata
 
-        mock_backend = MagicMock()
-        mock_backend.get_element_at_point.return_value = {
-            "name": "OK Button",
-            "control_type": "Button",
-            "bounds": {"x": 100, "y": 200, "width": 80, "height": 30},
-        }
-        mock_get_backend.return_value = mock_backend
+        mock_fallback.return_value = ElementMetadata(
+            name="OK Button",
+            type="Button",
+            bounds={"x": 100, "y": 200, "width": 80, "height": 30},
+            confidence_score=0.9,
+            source="accessibility",
+            fallback_used=False,
+        )
 
         result = get_element_metadata(100, 200)
         self.assertIsNotNone(result)
         self.assertEqual(result["name"], "OK Button")
         self.assertEqual(result["source"], "accessibility")
 
-    @patch("docugen.desktop.platform_router.get_accessibility_backend")
-    def test_returns_none_when_backend_finds_nothing(self, mock_get_backend):
+    @patch("docugen.desktop.fallback_manager.get_element_metadata_with_fallback")
+    def test_returns_none_when_backend_finds_nothing(self, mock_fallback):
         from docugen.desktop.platform_router import get_element_metadata
 
-        mock_backend = MagicMock()
-        mock_backend.get_element_at_point.return_value = None
-        mock_get_backend.return_value = mock_backend
+        mock_fallback.return_value = None
 
         result = get_element_metadata(100, 200)
         self.assertIsNone(result)
