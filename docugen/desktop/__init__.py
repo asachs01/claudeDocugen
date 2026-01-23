@@ -8,6 +8,7 @@ from .vision_cache import VisionCache
 from .mode_detection import detect_mode
 from .workflow_adapter import steps_to_workflow_data, detector_to_workflow_data
 from .desktop_workflow import DesktopWorkflow, WorkflowConfig, WorkflowStep
+from .capture_session import CaptureSession, HotkeyConfig, SessionState, SessionEvent
 from .element_metadata import Rect, ElementMetadata
 from .coordinate_transforms import (
     scale_bounds,
@@ -66,4 +67,8 @@ __all__ = [
     "DesktopWorkflow",
     "WorkflowConfig",
     "WorkflowStep",
+    "CaptureSession",
+    "HotkeyConfig",
+    "SessionState",
+    "SessionEvent",
 ]
