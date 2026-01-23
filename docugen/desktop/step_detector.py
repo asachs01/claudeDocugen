@@ -187,6 +187,121 @@ class StepDetector:
         self._before = after
         return step
 
+    def delete_step(self, step_number: int) -> bool:
+        """Delete a recorded step by its step number.
+
+        Remaining steps are renumbered to maintain sequence.
+
+        Args:
+            step_number: The 1-based step number to delete.
+
+        Returns:
+            True if step was found and deleted, False otherwise.
+        """
+        idx = step_number - 1
+        if idx < 0 or idx >= len(self._steps):
+            logger.warning("delete_step: step %d not found", step_number)
+            return False
+
+        self._steps.pop(idx)
+        # Renumber remaining steps
+        for i, step in enumerate(self._steps):
+            step.step_number = i + 1
+
+        return True
+
+    def merge_steps(self, step_num1: int, step_num2: int) -> Optional[StepRecord]:
+        """Merge two consecutive steps into one.
+
+        The merged step keeps the first step's before_capture and
+        the second step's after_capture. SSIM is recalculated for
+        the merged pair.
+
+        Args:
+            step_num1: First step number (1-based).
+            step_num2: Second step number (1-based), must be step_num1 + 1.
+
+        Returns:
+            The merged StepRecord, or None if merge is invalid.
+        """
+        if step_num2 != step_num1 + 1:
+            logger.warning("merge_steps: steps must be consecutive")
+            return None
+
+        idx1 = step_num1 - 1
+        idx2 = step_num2 - 1
+        if idx1 < 0 or idx2 >= len(self._steps):
+            logger.warning("merge_steps: step numbers out of range")
+            return None
+
+        s1 = self._steps[idx1]
+        s2 = self._steps[idx2]
+
+        ssim_score = self._compare(s1.before_capture, s2.after_capture)
+
+        merged = StepRecord(
+            step_number=step_num1,
+            before_capture=s1.before_capture,
+            after_capture=s2.after_capture,
+            ssim_score=ssim_score,
+            timestamp=s2.timestamp,
+            description=s1.description or s2.description,
+            detection_method="merged",
+        )
+
+        # Replace the pair with the merged step
+        self._steps[idx1] = merged
+        self._steps.pop(idx2)
+
+        # Renumber
+        for i, step in enumerate(self._steps):
+            step.step_number = i + 1
+
+        return merged
+
+    def redetect(self, threshold: Optional[float] = None) -> list[StepRecord]:
+        """Re-evaluate stored steps against a new threshold.
+
+        Filters the existing steps based on the new threshold without
+        re-capturing screenshots. Steps whose SSIM score is above the
+        new threshold are removed (considered insignificant).
+
+        Args:
+            threshold: New SSIM threshold. If None, uses current config.
+
+        Returns:
+            List of steps that were removed (no longer significant).
+        """
+        if threshold is not None:
+            if self._config.mode == "desktop":
+                self._config.desktop_threshold = threshold
+            else:
+                self._config.ssim_threshold = threshold
+
+        effective = self._config.effective_threshold
+        removed = []
+        kept = []
+
+        for step in self._steps:
+            if step.detection_method == "manual":
+                # Manual steps are always kept
+                kept.append(step)
+            elif step.ssim_score >= effective:
+                removed.append(step)
+            else:
+                kept.append(step)
+
+        self._steps = kept
+        # Renumber
+        for i, step in enumerate(self._steps):
+            step.step_number = i + 1
+
+        logger.info(
+            "Redetect: kept %d steps, removed %d (threshold=%.3f)",
+            len(kept), len(removed), effective
+        )
+        return removed
+
     def reset(self) -> None:
         """Reset the detector state, clearing all recorded steps."""
         self._steps.clear()
