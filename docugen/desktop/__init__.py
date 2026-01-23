@@ -7,6 +7,20 @@ from .step_detector import StepDetector, StepRecord, DetectorConfig
 from .vision_cache import VisionCache
 from .mode_detection import detect_mode
 from .workflow_adapter import steps_to_workflow_data, detector_to_workflow_data
+from .element_metadata import Rect, ElementMetadata
+from .coordinate_transforms import (
+    scale_bounds,
+    clip_bounds_to_image,
+    validate_screen_coordinates,
+    transform_to_image_coordinates,
+    get_dpi_scale_factor,
+)
+from .metadata_normalization import (
+    normalize_windows_metadata,
+    normalize_macos_metadata,
+    get_confidence_score,
+    dict_to_element_metadata,
+)
 
 __all__ = [
     "ScreenCapture",
@@ -23,4 +37,15 @@ __all__ = [
     "detect_mode",
     "steps_to_workflow_data",
     "detector_to_workflow_data",
+    "Rect",
+    "ElementMetadata",
+    "scale_bounds",
+    "clip_bounds_to_image",
+    "validate_screen_coordinates",
+    "transform_to_image_coordinates",
+    "get_dpi_scale_factor",
+    "normalize_windows_metadata",
+    "normalize_macos_metadata",
+    "get_confidence_score",
+    "dict_to_element_metadata",
 ]
