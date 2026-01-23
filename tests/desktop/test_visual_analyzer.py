@@ -8,9 +8,12 @@ from unittest.mock import patch, MagicMock
 
 from docugen.desktop.visual_analyzer import (
     analyze_screenshot,
+    analyze_screenshot_cached,
     analyze_capture_result,
+    get_cache,
     _parse_response,
     _get_media_type,
+    _blur_sensitive_regions,
 )
 
 
@@ -242,6 +245,101 @@ class TestGetMediaType(unittest.TestCase):
 
     def test_unknown_defaults_to_png(self):
         self.assertEqual(_get_media_type(Path("test.bmp")), "image/png")
+
+
+class TestAnalyzeScreenshotCached(unittest.TestCase):
+    """Tests for cached analysis function."""
+
+    def setUp(self):
+        # Clear module-level cache between tests
+        get_cache().clear()
+
+    @patch("anthropic.Anthropic")
+    def test_caches_results(self, mock_anthropic_cls):
+        """Second call with same image uses cache."""
+        mock_client = MagicMock()
+        mock_client.messages.create.return_value = _mock_api_response(
+            '[{"name": "OK", "type": "button", "bounds": {"x": 5, "y": 5, "width": 50, "height": 25}, "confidence": 0.85}]'
+        )
+        mock_anthropic_cls.return_value = mock_client
+
+        temp_path = _create_temp_png()
+        try:
+            result1 = analyze_screenshot_cached(temp_path)
+            result2 = analyze_screenshot_cached(temp_path)
+
+            self.assertEqual(result1, result2)
+            # API should only be called once
+            self.assertEqual(mock_client.messages.create.call_count, 1)
+            self.assertEqual(get_cache().hits, 1)
+        finally:
+            Path(temp_path).unlink()
+
+    def test_returns_none_for_missing_file(self):
+        result = analyze_screenshot_cached("/nonexistent.png")
+        self.assertIsNone(result)
+
+
+class TestBlurSensitiveRegions(unittest.TestCase):
+    """Tests for privacy screening blur function."""
+
+    def test_returns_bytes(self):
+        """Should return valid image bytes."""
+        from PIL import Image
+        import io
+
+        img = Image.new("RGB", (100, 100), color="white")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        image_bytes = buf.getvalue()
+
+        result = _blur_sensitive_regions(image_bytes)
+        self.assertIsInstance(result, bytes)
+        # Should be a valid PNG
+        self.assertTrue(result[:4] == b"\x89PNG")
+
+    def test_output_differs_from_input(self):
+        """Blurred output should differ from original."""
+        from PIL import Image
+        import io
+
+        # Create an image with varied content so blur has effect
+        img = Image.new("RGB", (100, 100), color="white")
+        for x in range(0, 100, 10):
+            for y in range(0, 100, 10):
+                img.putpixel((x, y), (0, 0, 0))
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        image_bytes = buf.getvalue()
+
+        result = _blur_sensitive_regions(image_bytes)
+        self.assertNotEqual(result, image_bytes)
+
+
+class TestAsyncAnalysis(unittest.TestCase):
+    """Tests for async analysis wrappers."""
+
+    @patch("anthropic.Anthropic")
+    def test_async_analyze_screenshot(self, mock_anthropic_cls):
+        """Async wrapper should return same result as sync."""
+        import asyncio
+
+        mock_client = MagicMock()
+        mock_client.messages.create.return_value = _mock_api_response(
+            '[{"name": "Submit", "type": "button", "bounds": {"x": 10, "y": 10, "width": 60, "height": 30}, "confidence": 0.9}]'
+        )
+        mock_anthropic_cls.return_value = mock_client
+
+        get_cache().clear()
+        temp_path = _create_temp_png()
+        try:
+            from docugen.desktop.visual_analyzer import analyze_screenshot_async
+
+            result = asyncio.run(analyze_screenshot_async(temp_path))
+            self.assertIsNotNone(result)
+            self.assertEqual(result[0]["name"], "Submit")
+        finally:
+            Path(temp_path).unlink()
 
 
 if __name__ == "__main__":

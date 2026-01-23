@@ -4,6 +4,7 @@ from .monitor_manager import MonitorManager
 from .window_enumerator import WindowEnumerator
 from .platform_router import get_accessibility_backend, get_capture_capabilities
 from .step_detector import StepDetector, StepRecord, DetectorConfig
+from .vision_cache import VisionCache
 
 __all__ = [
     "ScreenCapture",
@@ -16,4 +17,5 @@ __all__ = [
     "StepDetector",
     "StepRecord",
     "DetectorConfig",
+    "VisionCache",
 ]
