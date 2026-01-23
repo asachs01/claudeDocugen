@@ -2,7 +2,7 @@
   "master": {
     "tasks": [
       {
-        "id": "11",
+        "id": 11,
         "title": "Initialize DocuGen skill directory structure and create SKILL.md",
         "description": "Set up the complete file structure as specified in the PRD and implement core SKILL.md with workflow orchestration instructions and trigger keywords.",
         "details": "Create directory structure: docugen/ with scripts/, references/, templates/, assets/. Implement SKILL.md with natural language triggers like 'document this workflow', progressive disclosure for references, and core workflow: 1) user provides URL/workflow description, 2) initiate Playwright MCP recording, 3) process via Python scripts, 4) generate markdown. Include Phase 1 checklist items.",
@@ -14,7 +14,7 @@
         "updatedAt": "2026-01-20T21:13:11.166Z"
       },
       {
-        "id": "12",
+        "id": 12,
         "title": "Implement detect_step.py with SSIM step boundary detection",
         "description": "Create Python script for SSIM visual comparison to detect meaningful step boundaries using threshold < 0.90 as specified in FR-1.4.",
         "details": "Use scikit-image for SSIM calculation: pip install scikit-image. Implement compare_images(current_screenshot, previous_screenshot) returning True if SSIM < 0.90. Track screenshot history in session state. Handle edge cases: initial screenshot, rapid changes. Configurable threshold via environment variable SSIM_THRESHOLD=0.90. Output JSON with step timestamps and change confidence.",
@@ -28,7 +28,7 @@
         "updatedAt": "2026-01-20T21:14:16.045Z"
       },
       {
-        "id": "13",
+        "id": 13,
         "title": "Implement basic Playwright MCP integration for workflow recording",
         "description": "Enable web navigation and action capture via Playwright MCP (FR-1.2) with DOM event tracking and screenshot capture (FR-1.3).",
         "details": "In SKILL.md, implement instructions for Playwright MCP browser launch with viewport capture. Track MutationObserver events for dynamic content (FR-1.5). Capture element metadata: selector, text, ARIA labels (FR-1.6). Store session data as JSON: [{'step':1, 'action':'click', 'selector':'button#submit', 'screenshot':'step1.png', 'timestamp':...}]. Screenshot at native resolution (<200ms target).",
@@ -42,7 +42,7 @@
         "updatedAt": "2026-01-20T21:15:06.649Z"
       },
       {
-        "id": "14",
+        "id": 14,
         "title": "Create annotate_screenshot.py with highlight boxes and arrows",
         "description": "Implement PIL-based screenshot annotation for clicked elements with boxes and arrows (FR-2.2, FR-2.4).",
         "details": "Use Pillow: from PIL import Image, ImageDraw. Input: screenshot_path, element_coords (x1,y1,x2,y2 from DOM). Draw red highlight box (3px stroke), arrow from click point to element center using annotation_styles.json colors. Add step number callout (FR-2.3). Output annotated PNG <200KB via compression. Auto-detect sensitive fields for blurring (FR-2.5): regex for password, SSN patterns.",
@@ -57,11 +57,11 @@
         "updatedAt": "2026-01-20T21:16:38.984Z"
       },
       {
-        "id": "15",
+        "id": 15,
         "title": "Implement generate_markdown.py with default walkthrough template",
         "description": "Create template-based markdown assembly using walkthrough.md template (FR-3.1, FR-3.3).",
         "details": "Jinja2 templating: render template with session_data JSON. Structure: Overview, Prerequisites (FR-3.4), Steps with annotated images + expected results (FR-3.5), Troubleshooting stub. Use relative image paths: ![Step 1](./images/step-01.png). Consistent naming: step-{step_num:02d}-{description_slug}.png. Include alt text for WCAG compliance.",
-        "testStrategy": "Generate markdown from sample session data. Validate: proper markdown syntax, all images referenced, Flesch-Kincaid grade 7-8, step length ≤25 words.",
+        "testStrategy": "Generate markdown from sample session data. Validate: proper markdown syntax, all images referenced, Flesch-Kincaid grade 7-8, step length \u226425 words.",
         "priority": "high",
         "dependencies": [
           "14"
@@ -71,10 +71,10 @@
         "updatedAt": "2026-01-20T21:20:45.166Z"
       },
       {
-        "id": "16",
+        "id": 16,
         "title": "Create core reference documents and default templates",
         "description": "Implement references/writing_style_guide.md, annotation_conventions.md and templates/walkthrough.md, quick_reference.md.",
-        "details": "writing_style_guide.md: imperative verbs, active voice, ≤25 words/step, expected results format. annotation_conventions.md: red boxes=primary action, blue=related, arrow specs. templates/: walkthrough.md with PRD sample structure, quick_reference.md (condensed), tutorial.md (pedagogical).",
+        "details": "writing_style_guide.md: imperative verbs, active voice, \u226425 words/step, expected results format. annotation_conventions.md: red boxes=primary action, blue=related, arrow specs. templates/: walkthrough.md with PRD sample structure, quick_reference.md (condensed), tutorial.md (pedagogical).",
         "testStrategy": "Validate templates render correctly with sample data. Check style guide compliance in generated output via readability analysis.",
         "priority": "medium",
         "dependencies": [
@@ -86,7 +86,7 @@
         "updatedAt": "2026-01-20T21:30:00.000Z"
       },
       {
-        "id": "17",
+        "id": 17,
         "title": "Add contextual description generation and prerequisites detection",
         "description": "Enhance SKILL.md with Claude instructions for semantic analysis producing contextual step descriptions (FR-3.2, US-2).",
         "details": "In SKILL.md: Analyze workflow description + DOM metadata + step sequence to generate: 1) purpose of each action, 2) auto-detect prerequisites from initial navigation/login, 3) expected results phrasing. Use writing_style_guide.md as reference. Output format: {'step':1, 'action':'click Projects', 'context':'Accesses project management area', 'expected':'Projects page with New Project button'}",
@@ -102,7 +102,7 @@
         "updatedAt": "2026-01-20T21:35:00.000Z"
       },
       {
-        "id": "18",
+        "id": 18,
         "title": "Implement output management and file saving (FR-4.1, FR-4.2)",
         "description": "Save markdown and images to specified directory with consistent naming and table of contents.",
         "details": "In SKILL.md: mkdir -p output_dir/images. Save annotated screenshots with slug names. Generate TOC for multi-section docs (FR-4.3). Zip package option. Base64 embedding toggle (FR-3.6). Ensure relative paths work when moved.",
@@ -116,7 +116,7 @@
         "updatedAt": "2026-01-20T21:30:00.000Z"
       },
       {
-        "id": "19",
+        "id": 19,
         "title": "Add image optimization and advanced annotation features",
         "description": "Implement image compression, full-page capture option, and multi-annotation support (FR-2.6, FR-2.7, NFR-2).",
         "details": "In annotate_screenshot.py and process_images.py: PNG compression (quality=85), crop to relevant region using element bounding boxes, full-page scroll capture option. Multi-action screenshots: combine 2-3 related actions when SSIM change minimal.",
@@ -130,7 +130,7 @@
         "updatedAt": "2026-01-20T21:30:00.000Z"
       },
       {
-        "id": "20",
+        "id": 20,
         "title": "Implement audience adaptation and troubleshooting generation",
         "description": "Add US-4 audience levels and FR-3.7 troubleshooting section (P2 features).",
         "details": "SKILL.md: param audience='beginner|intermediate|expert'. Beginner: verbose context/warnings. Expert: concise commands. Troubleshooting: analyze workflow type (login->auth errors, forms->validation), generate 2-3 common issues with resolutions using troubleshooting_patterns.md.",
@@ -151,7 +151,345 @@
       "completedCount": 10,
       "tags": [
         "master"
-      ]
+      ],
+      "created": "2026-01-22T15:56:09.999Z",
+      "description": "Tasks for master context"
+    }
+  },
+  "enhancement-desktop-recording": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Update SKILL.md with desktop capture triggers and mode detection",
+        "description": "Enhance SKILL.md to support unified web+desktop triggers and implement detect_mode logic for automatic platform routing.",
+        "details": "Add desktop keywords to trigger phrases. Implement Python detect_mode function using keyword matching for desktop/web detection. Update description to explain dual-mode usage. Ensure backward compatibility with existing web triggers. Use exact logic from PRD: desktop_keywords list and web_keywords list with fallback to desktop if no web context.",
+        "testStrategy": "Test with sample user requests: 'document Windows workflow' -> desktop, 'document website' -> web, ambiguous -> desktop. Validate SKILL.md parses correctly in Claude environment. Check 10+ trigger phrases for correct mode detection.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 2,
+        "title": "Create platform_router.py for OS detection and capability routing",
+        "description": "Implement core routing logic to detect OS and accessibility availability, routing to appropriate backends.",
+        "details": "Use platform.system() for OS detection (Windows/Darwin/Linux). Implement get_accessibility_backend() with graceful ImportError handling for pywinauto/atomacos. Log warnings for missing deps. Route to mss screenshots always, accessibility optionally. Include FR-D2.1 to FR-D2.5 requirements.",
+        "testStrategy": "Unit tests for each OS simulation. Mock import failures. Verify routing paths: Windows+pywinauto -> full, macOS-no-atomacos -> visual, Linux -> visual. Integration test with mock backends.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "Implement desktop_capture.py with mss cross-platform screenshots",
+        "description": "Core screenshot capture using mss supporting full screen, specific monitors, windows, and high-DPI handling.",
+        "details": "Install mss>=9.0.0. Implement capture_full_screen(), capture_monitor(mon), capture_window_bounds(bounds), capture_active_window(). Handle Retina/high-DPI with mss scaling. Support FR-D1.1 to FR-D1.5. Return PIL Images. <50ms latency target. Exclude cursor option.",
+        "testStrategy": "Benchmark capture latency across platforms. Test multi-monitor setups. Verify high-DPI scaling on Retina. Validate PIL Image output format matches existing annotate_screenshot.py expectations.",
+        "priority": "high",
+        "dependencies": [
+          2
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Create window_manager.py for cross-platform window enumeration",
+        "description": "List windows by title/process, track bounds changes, handle focus/selection per FR-D7 requirements.",
+        "details": "Windows: win32gui.EnumWindows(). macOS: Quartz.CGWindowListCopyWindowInfo(). Linux: xdotool/wmctrl subprocess. Implement list_windows(), find_window(title/pattern), get_window_bounds(hwnd), track_window_changes(). Support exact/partial title match, process name. FR-D7.1 to FR-D7.4.",
+        "testStrategy": "Test window listing accuracy (titles match reality). Verify bounds tracking during resize/move. Cross-platform: test 5 common apps per platform. Handle minimized windows gracefully.",
+        "priority": "high",
+        "dependencies": [
+          3
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Integrate desktop capture with existing SSIM step detection pipeline",
+        "description": "Extend detect_step.py and capture loop to handle desktop screenshots using existing SSIM logic.",
+        "details": "Modify capture loop in main workflow: before_action_screenshot -> user_action -> after_screenshot -> SSIM(delta>0.90) -> record_step. Default debounce 300ms. Configurable threshold. Reuse existing scripts/detect_step.py unchanged. Combine manual/auto triggers (FR-D6.1, FR-D6.2).",
+        "testStrategy": "End-to-end test: document 10-step desktop workflow (Windows Firewall). Verify SSIM detects changes correctly. Test threshold tuning (0.85-0.95). Validate debounce prevents duplicates.",
+        "priority": "high",
+        "dependencies": [
+          3,
+          4
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Enhance annotate_screenshot.py for visual-only element bounds estimation",
+        "description": "Update annotation pipeline to use Claude vision for element identification when accessibility unavailable.",
+        "details": "Add visual_fallback mode: send screenshot to Claude with prompt 'Identify clicked UI element bounds and description'. Parse JSON response {bounds: [x,y,w,h], name: str, type: str}. Draw PIL rectangles. FR-D5.1 to FR-D5.4. Confidence scoring optional.",
+        "testStrategy": "Test Claude vision accuracy on 20+ UI elements (buttons, fields, menus). Verify annotation boxes align visually. Compare visual vs accessibility bounds (when available). >80% acceptable accuracy.",
+        "priority": "medium",
+        "dependencies": [
+          5
+        ],
+        "status": "in-progress",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Update generate_markdown.py for unified web+desktop output",
+        "description": "Extend markdown generation to handle mixed web/desktop steps with consistent formatting.",
+        "details": "Add step metadata: platform: 'web'|'desktop', window_title, app_context. Use existing walkthrough.md template. Add section headers for app transitions. Indicate capture type per step. FR-US-D9, US-D10. Table of contents for mixed content.",
+        "testStrategy": "Generate docs mixing 5 web + 5 desktop steps. Verify consistent styling. Validate TOC handles transitions. Test markdown renders correctly in GitHub/Obsidian.",
+        "priority": "medium",
+        "dependencies": [
+          5
+        ],
+        "status": "in-progress",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Implement windows_accessibility.py with pywinauto UI Automation",
+        "description": "v2.5 feature: Precise element identification on Windows using pywinauto backend='uia'.",
+        "details": "pip install pywinauto>=0.6.8 comtypes. Implement WindowsAccessibility class: init Desktop(backend='uia'), get_element_at_point(x,y), get_focused_element(), extract_metadata(name,type,bounds,automation_id). FR-D3.1 to FR-D3.6. <100ms/query.",
+        "testStrategy": "Test with Windows apps: Settings, File Explorer, Office, VS Code. Verify element metadata accuracy. Benchmark query speed. Test UI tree walking. Handle Chrome accessibility mode.",
+        "priority": "high",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Create element_mapper.py to map accessibility bounds to screenshots",
+        "description": "Coordinate transformation between accessibility element bounds and screenshot pixels.",
+        "details": "Handle window offsets, DPI scaling, multi-monitor coords. Transform UIA/AX bounds to screenshot-relative [x,y,w,h]. Cache mappings. Integrate with annotation pipeline: if accessibility_available, use exact_bounds else visual_bounds.",
+        "testStrategy": "Test bound accuracy: annotation boxes match actual elements pixel-perfect. Multi-monitor edge cases. High-DPI scaling validation. Compare mapped vs direct screenshot coords.",
+        "priority": "medium",
+        "dependencies": [
+          6,
+          8
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Implement macos_accessibility.py with atomacos integration",
+        "description": "v2.5.1 feature: macOS Accessibility API support with permission handling.",
+        "details": "pip install atomacos>=2.0.0 pyobjc-framework-Cocoa. Check Accessibility permission. Implement get_element_at_point(), extract_AX_attrs(role,title,pos,size). FR-D4.1 to FR-D4.4. Clear permission instructions. Fallback to visual.",
+        "testStrategy": "Test permission flow (grant/deny). Validate on System Settings, Finder, Safari. Compare AX metadata accuracy. Integration test with element_mapper.py.",
+        "priority": "medium",
+        "dependencies": [
+          2,
+          9
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 11,
+        "title": "Create platform reference documentation",
+        "description": "Add references/desktop_setup.md and accessibility_permissions.md for user guidance.",
+        "details": "Document mss installation, pywinauto/atomacos pip installs, macOS permission steps, Windows UIA requirements. Include troubleshooting for common issues. Link from SKILL.md.",
+        "testStrategy": "Validate instructions work on clean VM installs (Windows 11, macOS 14, Ubuntu 22). Test permission flows. Ensure instructions <30s to follow.",
+        "priority": "low",
+        "dependencies": [
+          7
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 12,
+        "title": "Add manual capture triggers and end-to-end testing",
+        "description": "Implement configurable hotkeys/manual triggers. Full Phase 1 v2.0 testing and validation.",
+        "details": "FR-D6.1, D6.4: command-based manual trigger. Optional platform hotkeys (keyboard lib). Visual/audio feedback. Performance: <50ms capture. Test 10-step workflows across platforms. Package as enhanced skill.",
+        "testStrategy": "E2E: Document Windows Firewall, macOS System Settings, Ubuntu Software. Verify >99% capture success. <8min for 10 steps. Mixed web+desktop doc. User satisfaction simulation.",
+        "priority": "high",
+        "dependencies": [
+          5,
+          7
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 13,
+        "title": "Enhance SKILL.md with Desktop Mode Triggers and Detection Logic",
+        "description": "Update SKILL.md to detect desktop vs web workflows and route appropriately",
+        "details": "Modify SKILL.md frontmatter to include desktop-specific trigger phrases (\"document desktop workflow\", \"Windows application\", \"macOS app\", etc.). Implement mode detection logic that analyzes user request for desktop keywords (native app, system settings, file explorer) vs web keywords (browser, URL, website). Add capability to detect if Playwright MCP is available to inform routing decisions. Update description to clearly indicate dual web+desktop support. Reference PRD Appendix mode_detection_logic for keyword lists.\n\nImplementation:\n1. Add desktop triggers to YAML frontmatter: \"document Windows application\", \"capture macOS workflow\", \"desktop software guide\"\n2. In Phase 1 Initiation, add mode detection step before MCP validation\n3. Create decision tree: explicit desktop keywords \u2192 desktop mode, URL provided \u2192 web mode, Playwright available \u2192 web mode (default), else \u2192 desktop mode\n4. Store detected mode in session metadata for later phases\n5. Update workflow description to mention cross-platform desktop capture alongside web\n\nValidation: Test with requests like \"document Chrome settings\" (desktop), \"document GitHub workflow\" (web), \"create guide for VS Code\" (desktop)",
+        "testStrategy": "Manual testing with varied user requests containing desktop/web keywords. Verify correct mode selection for ambiguous cases. Confirm fallback logic when Playwright unavailable. Check session metadata captures correct mode.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 14,
+        "title": "Create Platform Router Module for Accessibility Backend Selection",
+        "description": "Build platform_router.py to detect OS capabilities and route to appropriate capture backend",
+        "details": "Create docugen/desktop/platform_router.py that extends existing platform_utils.py. Implement get_accessibility_backend() function that attempts to import platform-specific accessibility libraries (pywinauto for Windows, atomacos for macOS) with graceful ImportError handling. Return backend instance or None if unavailable. Add get_capture_capabilities() to report available features (screenshots, accessibility, window enumeration). Log warnings when optional dependencies missing with installation instructions.\n\nPseudo-code:\n```python\ndef get_accessibility_backend():\n    os_type = get_os()\n    if os_type == 'windows':\n        try:\n            from pywinauto import Desktop\n            return WindowsAccessibility()\n        except ImportError:\n            logger.warning(\"pywinauto not installed. Run: pip install pywinauto\")\n            return None\n    elif os_type == 'macos':\n        try:\n            import atomacos\n            return MacOSAccessibility()\n        except ImportError:\n            logger.warning(\"atomacos not installed. Run: pip install atomacos\")\n            return None\n    return None  # Linux or no backend\n\ndef get_capture_capabilities():\n    return {\n        'screenshots': True,  # Always available via mss\n        'window_enumeration': True,  # Already implemented\n        'accessibility': get_accessibility_backend() is not None\n    }\n```",
+        "testStrategy": "Unit tests on all three platforms. Mock ImportError to test fallback behavior. Verify capabilities dict accuracy. Test with and without optional dependencies installed.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 15,
+        "title": "Integrate Claude Vision for Visual Element Identification",
+        "description": "Add Claude vision analysis to identify UI elements from screenshots when accessibility APIs unavailable",
+        "details": "Create docugen/desktop/visual_analyzer.py that uses Claude Opus 4.5 vision capabilities to analyze screenshots and identify clickable elements (buttons, links, inputs). Accept screenshot path and optional click coordinates as input. Generate structured output with element bounds estimation, element type (button/input/link), descriptive text, and confidence score. Implement as fallback when platform_router reports accessibility=False.\n\nAPI integration:\n```python\nimport anthropic\n\ndef analyze_screenshot(image_path: str, click_coords: tuple = None):\n    client = anthropic.Anthropic()\n    \n    with open(image_path, 'rb') as f:\n        image_data = base64.b64encode(f.read()).decode()\n    \n    prompt = \"Analyze this desktop application screenshot. Identify all interactive UI elements (buttons, inputs, links, menus). For each element, provide: 1) estimated bounding box (x, y, width, height), 2) element type, 3) visible text or label, 4) confidence score (0-1).\"\n    \n    if click_coords:\n        prompt += f\" Focus particularly on the element near coordinates {click_coords}.\"\n    \n    response = client.messages.create(\n        model=\"claude-opus-4-5-20251101\",\n        messages=[{\n            \"role\": \"user\",\n            \"content\": [\n                {\"type\": \"image\", \"source\": {\"type\": \"base64\", \"media_type\": \"image/png\", \"data\": image_data}},\n                {\"type\": \"text\", \"text\": prompt}\n            ]\n        }]\n    )\n    \n    return parse_element_data(response.content)\n```",
+        "testStrategy": "Test with desktop app screenshots (Settings, File Explorer, VS Code). Verify element detection accuracy >70%. Compare bounds estimation against known ground truth. Test with and without click coordinates hint. Measure analysis latency (<2s target).",
+        "priority": "high",
+        "dependencies": [
+          14
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 16,
+        "title": "Implement Windows Accessibility Integration via pywinauto",
+        "description": "Create Windows-specific accessibility module for precise UI element identification",
+        "details": "Create docugen/desktop/windows_accessibility.py implementing UI Automation integration. Use pywinauto Desktop(backend=\"uia\") for element queries. Implement get_element_at_point(x, y) to retrieve element at screen coordinates, returning name, control type (Button/Edit/ComboBox), automation ID, and exact bounding box. Add get_focused_element() for tracking active element. Implement timeout handling (100ms per query) and graceful degradation when UI Automation unavailable (Chrome/Edge without accessibility flags).\n\nCore implementation:\n```python\nfrom pywinauto import Desktop\nfrom pywinauto.timings import TimeoutError\n\nclass WindowsAccessibility:\n    def __init__(self):\n        self.desktop = Desktop(backend=\"uia\")\n    \n    def get_element_at_point(self, x: int, y: int, timeout_ms: int = 100):\n        try:\n            element = self.desktop.from_point(x, y)\n            return {\n                'name': element.window_text(),\n                'control_type': element.element_info.control_type,\n                'automation_id': element.element_info.automation_id,\n                'bounds': element.rectangle(),  # (left, top, right, bottom)\n                'is_enabled': element.is_enabled(),\n                'is_visible': element.is_visible()\n            }\n        except TimeoutError:\n            return None\n        except Exception as e:\n            logger.warning(f\"UI Automation query failed: {e}\")\n            return None\n    \n    def get_focused_element(self):\n        try:\n            element = self.desktop.top_window().get_focus()\n            return self.get_element_at_point(element.rectangle().mid_point())\n        except:\n            return None\n```",
+        "testStrategy": "Test on Windows 10/11 with standard applications (Notepad, Settings, File Explorer, Office apps). Verify element identification accuracy >95%. Test timeout handling with slow-responding apps. Verify graceful fallback when accessibility unavailable. Benchmark query latency (<100ms target).",
+        "priority": "medium",
+        "dependencies": [
+          14
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 17,
+        "title": "Implement macOS Accessibility Integration via atomacos",
+        "description": "Create macOS-specific accessibility module with permission handling",
+        "details": "Create docugen/desktop/macos_accessibility.py using atomacos Apple Accessibility API bindings. Implement permission check via AXIsProcessTrusted() before attempting element queries. If permission denied, return None and log clear instructions for granting access in System Preferences \u2192 Security & Privacy \u2192 Privacy \u2192 Accessibility. Implement get_element_at_point(x, y) using AXUIElementCopyElementAtPosition. Extract AX attributes (AXRole, AXTitle, AXPosition, AXSize) and map to common element metadata format.\n\nImplementation:\n```python\nimport atomacos\nfrom ApplicationServices import AXIsProcessTrusted\n\nclass MacOSAccessibility:\n    def __init__(self):\n        self.has_permission = self._check_permission()\n    \n    def _check_permission(self):\n        if not AXIsProcessTrusted():\n            logger.warning(\n                \"Accessibility permission required. Grant in:\\n\"\n                \"System Preferences \u2192 Security & Privacy \u2192 Privacy \u2192 Accessibility\\n\"\n                \"Add your terminal or IDE to the allowed list.\"\n            )\n            return False\n        return True\n    \n    def get_element_at_point(self, x: int, y: int):\n        if not self.has_permission:\n            return None\n        \n        try:\n            # Get system-wide accessibility object\n            app = atomacos.getAppRefByPid(atomacos.NativeUIElement._getpid())\n            element = app.AXUIElementCopyElementAtPosition(x, y)\n            \n            return {\n                'name': element.AXTitle or element.AXDescription,\n                'role': element.AXRole,\n                'position': element.AXPosition,  # (x, y) tuple\n                'size': element.AXSize,  # (width, height) tuple\n                'enabled': element.AXEnabled\n            }\n        except Exception as e:\n            logger.debug(f\"macOS accessibility query failed: {e}\")\n            return None\n```",
+        "testStrategy": "Test on macOS 12+ with permission granted and denied. Verify clear permission instructions displayed. Test with native macOS apps (TextEdit, Finder, System Preferences, Safari). Verify element identification accuracy when permission granted. Confirm graceful fallback to visual mode when denied.",
+        "priority": "medium",
+        "dependencies": [
+          14
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 18,
+        "title": "Create Desktop Workflow Orchestration in SKILL.md",
+        "description": "Implement desktop-specific workflow phases in SKILL.md with SSIM step detection",
+        "details": "Extend SKILL.md Phase 2 (Recording) with desktop capture logic. For desktop mode: 1) Use existing Screenshotter class for captures, 2) Prompt user for manual action triggers (\"Press Enter after each action\"), 3) Capture before/after screenshots using capture.py, 4) Query accessibility backend (if available) or visual_analyzer for element metadata, 5) Run detect_step.py with SSIM threshold 0.90, 6) Record step if significant change detected. Maintain same session data structure as web mode for unified Phase 3+ processing.\n\nWorkflow pseudo-code:\n```python\n# Desktop Recording Loop\nstep_count = 0\nscreenshotter = Screenshotter()\naccessibility = platform_router.get_accessibility_backend()\n\nwhile not user_signals_complete:\n    print(f\"Ready to capture Step {step_count + 1}. Describe the action:\")\n    action_description = input()\n    \n    # Before capture\n    before_path = f\"step-{step_count:02d}-before.png\"\n    if target_window:\n        screenshotter.capture_window(window_id, before_path)\n    else:\n        screenshotter.capture_fullscreen(output_path=before_path)\n    \n    print(\"Perform the action, then press Enter...\")\n    input()\n    \n    # After capture\n    after_path = f\"step-{step_count:02d}-after.png\"\n    screenshotter.capture_window(window_id, after_path) if target_window else screenshotter.capture_fullscreen(output_path=after_path)\n    \n    # Element metadata\n    if accessibility:\n        element_data = accessibility.get_focused_element()\n    else:\n        element_data = visual_analyzer.analyze_screenshot(after_path)\n    \n    # SSIM detection\n    ssim_score = detect_step.compare(before_path, after_path)\n    if ssim_score < 0.90:\n        record_step(step_count, action_description, element_data, before_path, after_path, ssim_score)\n        step_count += 1\n```",
+        "testStrategy": "End-to-end test documenting 10-step desktop workflow (e.g., Windows Settings configuration). Verify SSIM correctly identifies step boundaries. Confirm element metadata captured from accessibility or vision. Test with window-specific and fullscreen capture modes. Validate session JSON structure matches web mode format.",
+        "priority": "high",
+        "dependencies": [
+          13,
+          14,
+          15
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 19,
+        "title": "Create Element Mapper for Coordinate Translation",
+        "description": "Build element_mapper.py to translate accessibility bounds to screenshot pixel coordinates",
+        "details": "Create docugen/desktop/element_mapper.py to handle coordinate system differences between OS accessibility APIs and screenshot pixels. Windows: UI Automation returns screen coordinates directly; verify DPI scaling handled by mss. macOS: AXPosition returns Retina-scaled coordinates; divide by devicePixelRatio when mapping to screenshot. Linux: X11 coordinates match screenshot directly. Add validate_bounds() to ensure mapped coordinates fall within screenshot dimensions.\n\nImplementation:\n```python\nimport mss\n\nclass ElementMapper:\n    def __init__(self, os_type: str):\n        self.os_type = os_type\n        self.dpi_scale = self._get_dpi_scale()\n    \n    def _get_dpi_scale(self):\n        if self.os_type == 'macos':\n            # Retina displays use 2x scaling\n            import Quartz\n            return Quartz.CGDisplayScreenSize(Quartz.CGMainDisplayID()).width / 72.0\n        return 1.0\n    \n    def map_bounds_to_screenshot(self, accessibility_bounds: dict, screenshot_region: dict):\n        \"\"\"\n        Args:\n            accessibility_bounds: {x, y, width, height} or {left, top, right, bottom}\n            screenshot_region: mss monitor dict {left, top, width, height}\n        Returns:\n            {x, y, width, height} in screenshot pixel coordinates\n        \"\"\"\n        # Normalize to x, y, width, height\n        if 'x' in accessibility_bounds:\n            x, y, w, h = accessibility_bounds['x'], accessibility_bounds['y'], accessibility_bounds['width'], accessibility_bounds['height']\n        else:\n            rect = accessibility_bounds  # pywinauto rectangle\n            x, y = rect['left'], rect['top']\n            w, h = rect['right'] - rect['left'], rect['bottom'] - rect['top']\n        \n        # Apply DPI scaling\n        if self.os_type == 'macos':\n            x, y, w, h = x / self.dpi_scale, y / self.dpi_scale, w / self.dpi_scale, h / self.dpi_scale\n        \n        # Translate to screenshot-relative coordinates\n        screenshot_x = x - screenshot_region['left']\n        screenshot_y = y - screenshot_region['top']\n        \n        # Validate bounds\n        if screenshot_x < 0 or screenshot_y < 0 or screenshot_x + w > screenshot_region['width'] or screenshot_y + h > screenshot_region['height']:\n            logger.warning(f\"Element bounds {x, y, w, h} outside screenshot region\")\n        \n        return {'x': int(screenshot_x), 'y': int(screenshot_y), 'width': int(w), 'height': int(h)}\n```",
+        "testStrategy": "Unit tests with known element positions on each platform. Test DPI scaling on Retina displays. Verify coordinate translation for window-specific captures (non-zero screenshot origin). Test bounds validation rejects out-of-bounds coordinates. Visual validation: annotate test screenshots and verify boxes align with elements.",
+        "priority": "medium",
+        "dependencies": [
+          16,
+          17
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 20,
+        "title": "Update annotate_screenshot.py for Desktop Element Bounds",
+        "description": "Enhance annotation script to handle accessibility-provided bounds and visual estimates",
+        "details": "Extend docugen/scripts/annotate_screenshot.py to accept element bounds from two sources: 1) accessibility APIs (exact pixel coordinates from element_mapper), 2) visual analysis (estimated bounds with confidence scores). When accessibility bounds available, use directly for annotation boxes. When visual estimates only, apply confidence-based styling (solid border for confidence >0.8, dashed for <0.8). Add metadata flag to indicate annotation source (accessibility/visual). Maintain backward compatibility with existing web-based annotation from Playwright bounding boxes.\n\nEnhancement:\n```python\ndef annotate_element(image, element_data):\n    draw = ImageDraw.Draw(image)\n    bounds = element_data['bounds']\n    source = element_data.get('source', 'accessibility')  # accessibility|visual\n    \n    # Draw annotation box\n    if source == 'accessibility':\n        # Solid border for precise bounds\n        draw.rectangle(\n            [bounds['x'], bounds['y'], bounds['x'] + bounds['width'], bounds['y'] + bounds['height']],\n            outline='#FF6B35',\n            width=3\n        )\n    else:\n        # Visual estimate - use confidence for styling\n        confidence = element_data.get('confidence', 0.5)\n        outline_style = (3, 3) if confidence < 0.8 else None  # Dashed if low confidence\n        draw.rectangle(\n            [bounds['x'], bounds['y'], bounds['x'] + bounds['width'], bounds['y'] + bounds['height']],\n            outline='#FFA500',\n            width=2,\n            dash=outline_style\n        )\n    \n    # Add label if element has text\n    if 'text' in element_data:\n        draw.text((bounds['x'], bounds['y'] - 20), element_data['text'], fill='#FF6B35')\n```",
+        "testStrategy": "Visual regression tests with screenshots containing accessibility bounds and visual estimates. Verify solid borders for accessibility, dashed for low-confidence visual estimates. Test backward compatibility with existing web annotations. Confirm metadata flag persists in output. Manual review of annotated desktop screenshots for visual quality.",
+        "priority": "medium",
+        "dependencies": [
+          15,
+          19
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 21,
+        "title": "Create Desktop Setup Documentation",
+        "description": "Write references/desktop_setup.md with platform-specific installation and permission instructions",
+        "details": "Create docugen/references/desktop_setup.md following PRD Appendix A structure. Document: 1) Core requirements (mss, Pillow, scikit-image - already in requirements.txt), 2) Optional Windows dependencies (pywinauto, comtypes) with pip commands, 3) Optional macOS dependencies (atomacos, pyobjc-framework-Cocoa) with pip commands and permission grant instructions, 4) Linux dependencies (python-xlib) noting visual-only mode. Include troubleshooting section for common issues (permission denied, DPI scaling, window enumeration failures). Add platform-specific screenshots showing permission dialogs.\n\nStructure:\n```markdown\n# Desktop Capture Setup\n\n## Core Requirements (All Platforms)\n```bash\npip install mss Pillow scikit-image\n```\n\n## Windows (Optional: Precise Element Identification)\n```bash\npip install pywinauto comtypes\n```\nNo additional permissions required.\n\n## macOS (Optional: Precise Element Identification)\n```bash\npip install atomacos pyobjc-framework-Cocoa pyobjc-framework-Quartz\n```\n\n### Granting Accessibility Permission\n1. Open System Preferences \u2192 Security & Privacy\n2. Click Privacy tab \u2192 Select Accessibility\n3. Click lock icon and authenticate\n4. Add your terminal app (Terminal.app, iTerm2) or IDE\n5. Restart application\n\n[Screenshot of macOS Privacy settings]\n\n## Linux (Visual-Only Mode)\n```bash\npip install python-xlib  # X11 only, Wayland not supported\n```\nNo accessibility integration available. Visual analysis via Claude only.\n\n## Troubleshooting\n**\"Permission denied\" on macOS**: Grant accessibility permission per above\n**Element bounds misaligned**: Check DPI scaling settings\n**Window enumeration empty**: Ensure windows are visible and not minimized\n```",
+        "testStrategy": "Manual validation on all three platforms. Test installation commands work from scratch. Verify macOS permission instructions lead to successful access. Confirm Linux setup note about Wayland limitation. Peer review for clarity.",
+        "priority": "low",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 22,
+        "title": "Implement Automatic Step Detection with Configurable SSIM Threshold",
+        "description": "Enhance detect_step.py for desktop-specific visual change patterns",
+        "details": "Update docugen/scripts/detect_step.py to support configurable SSIM threshold (default 0.90 for web, test 0.85-0.90 range for desktop). Desktop applications may have subtler visual changes (status bar updates, menu highlights) compared to web page navigation. Add analysis for desktop-specific change patterns: window title changes, taskbar updates, dialog appearances. Implement debounce logic (300ms minimum between captures) to prevent duplicate step detection from animations. Store threshold in session metadata for consistency.\n\nEnhancement:\n```python\nimport numpy as np\nfrom skimage.metrics import structural_similarity as ssim\nimport cv2\n\ndef detect_step(before_path: str, after_path: str, threshold: float = 0.90, mode: str = 'web'):\n    \"\"\"\n    Args:\n        threshold: SSIM threshold below which to mark as step (default 0.90)\n        mode: 'web' or 'desktop' - affects threshold sensitivity\n    \"\"\"\n    # Adjust threshold for desktop mode if not explicitly set\n    if mode == 'desktop' and threshold == 0.90:\n        threshold = 0.87  # Desktop apps have subtler changes\n    \n    before = cv2.imread(before_path, cv2.IMREAD_GRAYSCALE)\n    after = cv2.imread(after_path, cv2.IMREAD_GRAYSCALE)\n    \n    # Compute SSIM\n    score, diff = ssim(before, after, full=True)\n    \n    # Additional desktop-specific checks\n    if mode == 'desktop':\n        # Check for dialog/modal appearance (high contrast region change)\n        diff_normalized = (diff * 255).astype('uint8')\n        contours, _ = cv2.findContours(diff_normalized > 128, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)\n        \n        # Large new region suggests dialog/window appearance\n        for contour in contours:\n            area = cv2.contourArea(contour)\n            if area > (before.shape[0] * before.shape[1] * 0.1):  # >10% of screen\n                return True, score, 'dialog_detected'\n    \n    return score < threshold, score, 'ssim'\n```",
+        "testStrategy": "Test with desktop workflow screenshots capturing varied change types (dialog opens, menu selection, text entry, status bar update). Measure precision/recall against manually labeled ground truth. Benchmark various thresholds (0.85, 0.87, 0.90) for desktop mode. Verify debounce prevents duplicate detections within 300ms. Validate dialog detection logic with modal appearance screenshots.",
+        "priority": "medium",
+        "dependencies": [
+          18
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 23,
+        "title": "Update generate_markdown.py for Unified Web+Desktop Output",
+        "description": "Enhance markdown generation to handle mixed web/desktop workflows in single document",
+        "details": "Extend docugen/scripts/generate_markdown.py to accept steps from both web (Playwright) and desktop (screenshot-based) sources. Add step metadata indicating capture mode (web/desktop/mixed). For desktop steps, include application name and window title in step context. Update template rendering to show platform indicators (\ud83d\udcf1 for desktop, \ud83c\udf10 for web). Support mixed workflows where some steps are web (e.g., download from website) and some are desktop (e.g., install and configure). Maintain consistent formatting across capture types per PRD US-D10.\n\nEnhancement:\n```python\ndef generate_step_markdown(step_data):\n    mode_icon = '\ud83c\udf10' if step_data['mode'] == 'web' else '\ud83d\udcf1'\n    markdown = f\"### {mode_icon} Step {step_data['step']}: {step_data['title']}\\n\\n\"\n    \n    # Add context (app/window for desktop, URL for web)\n    if step_data['mode'] == 'desktop':\n        markdown += f\"**Application:** {step_data.get('app_name', 'Desktop')}\\n\\n\"\n    else:\n        markdown += f\"**Page:** {step_data.get('url', 'Web')}\\n\\n\"\n    \n    # Element information (consistent format)\n    if 'element' in step_data:\n        elem = step_data['element']\n        source = elem.get('source', 'accessibility')\n        markdown += f\"Click **{elem['name']}** \"\n        if source == 'visual':\n            markdown += f\"(identified via AI vision, {int(elem['confidence']*100)}% confidence)\\n\\n\"\n        else:\n            markdown += f\"({elem['control_type']})\\n\\n\"\n    \n    # Screenshot and expected result (same for both modes)\n    markdown += f\"![Step {step_data['step']}](./images/{step_data['screenshot']})\\n\\n\"\n    markdown += f\"**Expected result:** {step_data['expected_result']}\\n\\n\"\n    \n    return markdown\n```",
+        "testStrategy": "Test with web-only, desktop-only, and mixed workflows. Verify mode icons display correctly. Confirm desktop steps show application context. Test visual vs accessibility element source indicators. Validate output consistency with existing web documentation format. Generate sample mixed workflow (download file from web, install on desktop) and verify coherent output.",
+        "priority": "medium",
+        "dependencies": [
+          18,
+          20
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 24,
+        "title": "Implement FFmpeg-based Video Recording Infrastructure",
+        "description": "Create video_recorder.py for full-motion screen recording with cross-platform FFmpeg support",
+        "details": "Create docugen/desktop/video_recorder.py using FFmpeg subprocess for screen recording. Implement start_recording(monitor=None, window_id=None, output_path='recording.mp4') and stop_recording(). Support full screen, specific monitor, and window-only recording. Use platform-specific FFmpeg input devices: Windows (gdigrab), macOS (avfoundation), Linux (x11grab). Target 30fps, H.264 codec, audio optional. Handle FFmpeg installation validation with clear error messages if missing.\n\nImplementation:\n```python\nimport subprocess\nimport platform\nfrom pathlib import Path\n\nclass VideoRecorder:\n    def __init__(self):\n        self.os_type = platform.system().lower()\n        self.process = None\n        self.validate_ffmpeg()\n    \n    def validate_ffmpeg(self):\n        try:\n            subprocess.run(['ffmpeg', '-version'], capture_output=True, check=True)\n        except (FileNotFoundError, subprocess.CalledProcessError):\n            raise RuntimeError(\n                \"FFmpeg not found. Install:\\n\"\n                \"Windows: choco install ffmpeg\\n\"\n                \"macOS: brew install ffmpeg\\n\"\n                \"Linux: apt-get install ffmpeg\"\n            )\n    \n    def start_recording(self, monitor_num=None, output_path='recording.mp4', fps=30, audio=False):\n        if self.os_type == 'windows':\n            input_device = 'gdigrab'\n            input_source = 'desktop'\n        elif self.os_type == 'darwin':\n            input_device = 'avfoundation'\n            input_source = '1:0' if audio else '1:none'  # Screen:Audio\n        else:  # Linux\n            input_device = 'x11grab'\n            input_source = ':0.0'\n        \n        cmd = [\n            'ffmpeg', '-f', input_device,\n            '-framerate', str(fps),\n            '-i', input_source,\n            '-c:v', 'libx264',\n            '-preset', 'ultrafast',\n            '-y',  # Overwrite output\n            output_path\n        ]\n        \n        self.process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)\n        return output_path\n    \n    def stop_recording(self):\n        if self.process:\n            self.process.terminate()\n            self.process.wait(timeout=5)\n            self.process = None\n```",
+        "testStrategy": "Test recording on all platforms with FFmpeg installed. Verify 30fps capture rate. Test fullscreen and monitor-specific recording. Validate H.264 output playable in standard media players. Test graceful error when FFmpeg missing. Benchmark CPU/memory usage during recording. Test audio capture on macOS/Linux.",
+        "priority": "low",
+        "dependencies": [
+          14
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 25,
+        "title": "Create Intelligent Frame Extractor from Video Recordings",
+        "description": "Build frame_extractor.py with motion-based frame selection for video-to-workflow conversion",
+        "details": "Create docugen/desktop/frame_extractor.py using opencv-python for video processing. Implement extract_frames_interval(video_path, interval_sec=2) for simple time-based extraction. Implement extract_frames_motion(video_path, threshold=0.87) for intelligent extraction using frame-to-frame SSIM comparison (similar to detect_step.py). Motion-based extraction identifies frames where significant visual change occurred, automatically detecting step boundaries from video. Output extracted frames as numbered PNGs with timestamps for integration into existing annotation pipeline.\n\nImplementation:\n```python\nimport cv2\nimport numpy as np\nfrom skimage.metrics import structural_similarity as ssim\n\nclass FrameExtractor:\n    def extract_frames_motion(self, video_path: str, threshold: float = 0.87, output_dir: str = './frames'):\n        \"\"\"\n        Extract frames from video where significant motion detected.\n        Uses SSIM comparison between consecutive frames.\n        \"\"\"\n        cap = cv2.VideoCapture(video_path)\n        fps = cap.get(cv2.CAP_PROP_FPS)\n        \n        frames = []\n        prev_frame = None\n        frame_idx = 0\n        \n        while cap.isOpened():\n            ret, frame = cap.read()\n            if not ret:\n                break\n            \n            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)\n            \n            if prev_frame is not None:\n                # Compare with previous frame\n                score = ssim(prev_frame, gray)\n                \n                if score < threshold:\n                    # Significant change detected\n                    timestamp = frame_idx / fps\n                    output_path = f\"{output_dir}/frame-{len(frames):03d}-{timestamp:.2f}s.png\"\n                    cv2.imwrite(output_path, frame)\n                    frames.append({\n                        'path': output_path,\n                        'timestamp': timestamp,\n                        'ssim': score\n                    })\n            \n            prev_frame = gray\n            frame_idx += 1\n        \n        cap.release()\n        return frames\n    \n    def extract_frames_interval(self, video_path: str, interval_sec: float = 2.0, output_dir: str = './frames'):\n        \"\"\"\n        Extract frames at fixed time intervals.\n        \"\"\"\n        cap = cv2.VideoCapture(video_path)\n        fps = cap.get(cv2.CAP_PROP_FPS)\n        frame_interval = int(fps * interval_sec)\n        \n        frames = []\n        frame_idx = 0\n        \n        while cap.isOpened():\n            ret, frame = cap.read()\n            if not ret:\n                break\n            \n            if frame_idx % frame_interval == 0:\n                timestamp = frame_idx / fps\n                output_path = f\"{output_dir}/frame-{len(frames):03d}-{timestamp:.2f}s.png\"\n                cv2.imwrite(output_path, frame)\n                frames.append({'path': output_path, 'timestamp': timestamp})\n            \n            frame_idx += 1\n        \n        cap.release()\n        return frames\n```",
+        "testStrategy": "Test with sample desktop workflow videos (5-10 minutes). Compare motion-based extraction against manually labeled ground truth steps. Verify extracted frames capture actual UI changes, not just mouse movement. Test interval-based extraction at 1s, 2s, 5s intervals. Benchmark extraction speed (target: real-time playback). Validate frame quality sufficient for annotation.",
+        "priority": "low",
+        "dependencies": [
+          24
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2026-01-22T15:56:10.002Z",
+      "updated": "2026-01-23T16:47:08.025Z",
+      "description": "Tasks for enhancement-desktop-recording context"
     }
   }
 }

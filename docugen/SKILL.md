@@ -1,14 +1,16 @@
 ---
 name: docugen
 description: |
-  Automate creation of step-by-step documentation from web-based workflows.
+  Automate creation of step-by-step documentation from web or desktop workflows.
   Use when: (1) "document this workflow", (2) "create a walkthrough for [URL]",
-  (3) "generate documentation", (4) "record this process", (5) "make a guide for".
+  (3) "generate documentation", (4) "record this process", (5) "make a guide for",
+  (6) "document this desktop app", (7) "capture macOS/Windows workflow".
   Produces professional markdown with annotated screenshots, contextual explanations,
-  prerequisites, and expected results.
+  prerequisites, and expected results. Supports both browser-based (Playwright/Chrome
+  DevTools MCP) and native desktop application recording (accessibility APIs + vision).
 author: WYRE Technology
-version: 1.0.0
-date: 2026-01-20
+version: 1.1.0
+date: 2026-01-23
 triggers:
   - document this workflow
   - create a walkthrough
@@ -17,16 +19,23 @@ triggers:
   - make a guide for
   - document how to
   - create step-by-step guide
+  - document this application
+  - capture desktop workflow
+  - document Windows application
+  - document macOS application
+  - capture native app
+  - desktop software guide
+  - record desktop process
 ---
 
 # DocuGen: Intelligent Documentation Generator
 
-DocuGen transforms web-based workflows into professional-quality documentation with
+DocuGen transforms web-based and desktop workflows into professional-quality documentation with
 annotated screenshots and contextual explanations.
 
 ## Quick Start
 
-To document a workflow:
+### Web Workflow
 1. Provide the starting URL
 2. Describe the workflow goal (e.g., "create a new project")
 3. DocuGen will guide you through the recording process
@@ -37,32 +46,101 @@ Document this workflow: Create a new repository on GitHub
 Starting URL: https://github.com/new
 ```
 
+### Desktop Workflow
+1. Name the application and workflow goal
+2. DocuGen detects desktop mode automatically from your description
+3. Follow prompts to perform each action while screenshots are captured
+
+**Example:**
+```
+Document this desktop workflow: Change display resolution in System Settings
+Application: System Settings
+```
+
 ## Capabilities
 
 - **Semantic Understanding**: Generates contextual explanations, not just "click here"
 - **Screenshot Annotation**: Highlights, arrows, and numbered callouts
 - **Professional Output**: Markdown with proper structure, prerequisites, and expected results
 - **Audience Adaptation**: Adjust detail level for beginner/intermediate/expert
+- **Dual Mode**: Supports both web (browser) and desktop (native app) recording
+- **Accessibility Integration**: Uses platform accessibility APIs for precise element identification
+- **Visual Fallback**: Claude Vision analysis when accessibility data is unavailable
 
 ## Requirements
 
-### MCP Integrations (Required)
+### MCP Integrations (Web Mode)
 - **Playwright MCP** or **Chrome DevTools MCP**: For browser automation and DOM access
 
-### Python Dependencies
+### Python Dependencies (Both Modes)
 - PIL/Pillow: Screenshot annotation
 - scikit-image: SSIM step detection
+- mss: Cross-platform screenshot capture (desktop mode)
+- anthropic: Claude Vision API for visual element analysis (desktop mode fallback)
+
+### Platform Dependencies (Desktop Mode, Optional)
+- **macOS**: pyobjc-framework-Quartz, atomacos (accessibility)
+- **Windows**: pywin32, pywinauto (accessibility)
+- **Linux**: python-xlib (window enumeration only, no accessibility backend)
+
+## Mode Detection
+
+DocuGen automatically determines whether to use web or desktop recording based on
+keywords in the user's request.
+
+### Desktop Mode Keywords
+Match any of these to activate desktop mode:
+- "desktop", "native app", "application" (without URL)
+- "System Preferences", "System Settings", "Finder", "Explorer"
+- "Windows application", "macOS application"
+- "installed software", "desktop software"
+- App-specific names: "Photoshop", "Excel", "VS Code", "Terminal", etc.
+
+### Web Mode Keywords
+Match any of these (or presence of a URL) to activate web mode:
+- "website", "web app", "browser", "URL", "http"
+- Any valid URL in the request
+- "login page", "dashboard", "web portal"
+
+### Detection Priority
+1. **Explicit URL provided** → Web mode (always)
+2. **Desktop keywords matched** → Desktop mode
+3. **Web keywords matched** → Web mode
+4. **Ambiguous** → Ask user via `AskUserQuestion`
+
+```
+AskUserQuestion:
+  question: "Is this a web-based or desktop application workflow?"
+  header: "Mode"
+  options:
+    - label: "Web (browser)"
+      description: "Recording in a web browser using Playwright/Chrome DevTools"
+    - label: "Desktop (native app)"
+      description: "Recording a native desktop application with screenshot capture"
+```
 
 ## Workflow Orchestration
 
 ### Phase 1: Initiation
+
+#### Web Mode
 When user provides URL and workflow description:
 1. Validate Playwright MCP or Chrome DevTools MCP is available
 2. Create output directory for images
 3. Navigate to starting URL
 4. Confirm workflow goal with user
 
+#### Desktop Mode
+When user describes a desktop application workflow:
+1. Detect platform capabilities via `get_capture_capabilities()`
+2. Create output directory for images
+3. Report available capture features (accessibility, window enumeration)
+4. Confirm workflow goal and target application with user
+5. Initialize `StepDetector` with desktop thresholds
+
 ### Phase 2: Recording
+
+#### Web Mode Recording
 For each user action:
 1. Capture screenshot before action
 2. Record element metadata (selector, text, ARIA labels)
@@ -70,6 +148,43 @@ For each user action:
 4. Capture screenshot after action
 5. Compare screenshots using SSIM (threshold < 0.90)
 6. If significant change detected, mark as step boundary
+
+#### Desktop Mode Recording
+For each user action:
+1. Prompt user to describe the next action they will perform
+2. Call `StepDetector.capture_before()` to take baseline screenshot
+3. Prompt user to perform the action on their desktop
+4. Call `StepDetector.capture_after(description)` to capture result
+5. SSIM comparison (threshold < 0.87 for desktop) detects step boundary
+6. If significant change detected:
+   a. Get element metadata via `get_element_metadata(x, y, screenshot_path)`
+   b. Accessibility backend provides element name, type, role
+   c. If no accessibility data, fall back to Claude Vision analysis
+   d. Record step with element metadata and source attribution
+7. Offer user option to add more steps or finish recording
+
+#### Desktop Step Capture Flow
+```
+User: "I'm going to click the Save button"
+
+1. StepDetector.capture_before()
+   → Takes screenshot, stores as baseline
+
+2. [User performs action on desktop]
+
+3. User: "Done" (or press Enter)
+
+4. StepDetector.capture_after("Click Save button")
+   → Takes screenshot
+   → Compares SSIM (e.g., 0.74 < 0.87 threshold)
+   → Returns StepRecord with before/after paths
+
+5. get_element_metadata(click_x, click_y, after_screenshot_path)
+   → Tries accessibility: {name: "Save", type: "button", source: "accessibility"}
+   → Or vision fallback: {name: "Save", type: "button", source: "visual", confidence: 0.9}
+
+6. Record step with full metadata
+```
 
 ### Phase 3: Processing
 After recording completes:
@@ -496,9 +611,11 @@ For dynamic content, track DOM mutations:
 
 Store recording session as JSON for processing:
 
+#### Web Mode Session
 ```json
 {
   "sessionId": "uuid",
+  "mode": "web",
   "startUrl": "https://example.com",
   "workflowDescription": "Create a new project",
   "startTime": "2026-01-20T10:00:00Z",
@@ -518,6 +635,63 @@ Store recording session as JSON for processing:
     }
   ],
   "endTime": "2026-01-20T10:05:00Z"
+}
+```
+
+#### Desktop Mode Session
+```json
+{
+  "sessionId": "uuid",
+  "mode": "desktop",
+  "app_name": "System Settings",
+  "workflowDescription": "Change display resolution",
+  "platform": {
+    "os": "macos",
+    "dpi_scale": 2.0,
+    "has_accessibility": true,
+    "has_window_enumeration": true
+  },
+  "startTime": "2026-01-23T14:00:00Z",
+  "steps": [
+    {
+      "step": 1,
+      "action": "click",
+      "description": "Click Displays in the sidebar",
+      "mode": "desktop",
+      "app_name": "System Settings",
+      "window_title": "System Settings",
+      "element": {
+        "name": "Displays",
+        "type": "button",
+        "bounds": { "x": 85, "y": 320, "width": 180, "height": 32 },
+        "source": "accessibility"
+      },
+      "screenshotBefore": "step-01-before.png",
+      "screenshotAfter": "step-01-after.png",
+      "ssimScore": 0.68,
+      "timestamp": "2026-01-23T14:00:12Z"
+    },
+    {
+      "step": 2,
+      "action": "click",
+      "description": "Select Scaled resolution option",
+      "mode": "desktop",
+      "app_name": "System Settings",
+      "window_title": "Displays",
+      "element": {
+        "name": "Scaled",
+        "type": "radio",
+        "bounds": { "x": 420, "y": 285, "width": 120, "height": 24 },
+        "source": "visual",
+        "confidence": 0.88
+      },
+      "screenshotBefore": "step-02-before.png",
+      "screenshotAfter": "step-02-after.png",
+      "ssimScore": 0.75,
+      "timestamp": "2026-01-23T14:00:30Z"
+    }
+  ],
+  "endTime": "2026-01-23T14:02:00Z"
 }
 ```
 
@@ -610,7 +784,7 @@ For each user-directed action:
 7. **Compare with SSIM** to detect step boundary
 8. **Record DOM mutations** if significant
 
-### Example Recording Flow
+### Example Recording Flow (Web)
 
 ```
 User: "Document creating a new GitHub repository"
@@ -629,14 +803,141 @@ User: "Document creating a new GitHub repository"
 11. Continue with next action...
 ```
 
+### Example Recording Flow (Desktop)
+
+```
+User: "Document changing display resolution in System Settings"
+
+1. Initialize StepDetector(mode="desktop", output_dir="./output/images")
+2. Get platform capabilities: accessibility=True, os=macos
+
+3. [Ask user: "What action will you perform next?"]
+4. User: "I'll click Displays in the sidebar"
+
+5. detector.capture_before()
+   → Takes baseline screenshot
+
+6. [User clicks Displays in System Settings]
+7. User: "Done"
+
+8. detector.capture_after("Click Displays in sidebar")
+   → Takes screenshot, SSIM = 0.68 (< 0.87 threshold)
+   → Step detected! Saves before/after images
+
+9. get_element_metadata(x=85, y=320, screenshot_path="step-01-after.png")
+   → Accessibility: {name: "Displays", type: "button", source: "accessibility"}
+
+10. Record Step 1 with element metadata
+11. [Ask user: "What action will you perform next?"]
+12. Continue or finish...
+```
+
+## Desktop Capture Integration
+
+### Platform Initialization
+
+At the start of a desktop recording session, detect platform capabilities:
+
+```python
+from docugen.desktop import get_capture_capabilities, StepDetector, DetectorConfig
+
+caps = get_capture_capabilities()
+# {"screenshots": True, "window_enumeration": True, "accessibility": True,
+#  "os": "macos", "dpi_scale": 2.0, "notes": []}
+
+config = DetectorConfig(mode="desktop")  # Uses 0.87 threshold
+detector = StepDetector(config=config, output_dir="./output/images")
+```
+
+### Element Metadata Resolution
+
+After capturing a step, resolve the element the user interacted with:
+
+```python
+from docugen.desktop import get_element_metadata
+
+# Tries accessibility first, falls back to Claude Vision
+element = get_element_metadata(x=420, y=285, screenshot_path="step-02-after.png")
+# Returns: {"name": "Scaled", "type": "radio", "source": "accessibility"}
+# Or:      {"name": "Scaled", "type": "radio", "source": "visual", "confidence": 0.88}
+```
+
+### Source-Aware Annotations
+
+Desktop annotations adapt styling based on element source:
+
+| Source | Color | Border Width | Meaning |
+|--------|-------|-------------|---------|
+| accessibility | Red-orange (255,87,51) | 3px | High-confidence, API-verified |
+| visual (≥0.8) | Orange (255,165,0) | 3px | Vision-identified, confident |
+| visual (<0.8) | Orange (255,165,0) | 2px | Vision-identified, uncertain |
+
+### Desktop Markdown Generation
+
+Desktop mode steps include additional metadata in the generated markdown:
+
+```markdown
+### Step 2: Select Scaled resolution option
+
+**Application:** System Settings - Displays
+
+Click **Scaled** (radio, identified via visual analysis, 88% confidence)
+
+![Step 2](./images/step-02-after.png)
+
+**Expected result:** Resolution options grid appears below the Scaled radio button.
+```
+
+### Desktop Recording User Prompts
+
+Use `AskUserQuestion` to guide the user through each desktop action:
+
+```
+AskUserQuestion:
+  question: "What action will you perform next on the desktop?"
+  header: "Next action"
+  options:
+    - label: "Click an element"
+      description: "I'll click a button, menu item, or other UI element"
+    - label: "Type text"
+      description: "I'll type into a text field or search box"
+    - label: "Keyboard shortcut"
+      description: "I'll use a keyboard shortcut (e.g., Cmd+S)"
+    - label: "Done recording"
+      description: "I've completed all the steps"
+```
+
+After the user performs their action:
+
+```
+AskUserQuestion:
+  question: "Where did you click? Describe the element or approximate screen position."
+  header: "Element"
+  options:
+    - label: "I'll describe it"
+      description: "Let me tell you what I clicked on"
+    - label: "Auto-detect"
+      description: "Use accessibility/vision to identify the element"
+```
+
 ## Scripts Reference
 
 | Script | Purpose |
 |--------|---------|
 | `detect_step.py` | SSIM-based step boundary detection |
-| `annotate_screenshot.py` | Add highlights, arrows, callouts |
-| `generate_markdown.py` | Template-based markdown assembly |
+| `annotate_screenshot.py` | Add highlights, arrows, callouts (web + desktop) |
+| `generate_markdown.py` | Template-based markdown assembly (web + desktop) |
 | `process_images.py` | Optimization and compression |
+
+### Desktop-Specific Modules
+
+| Module | Purpose |
+|--------|---------|
+| `desktop/capture.py` | Cross-platform screenshot capture (mss) |
+| `desktop/step_detector.py` | SSIM-based step detection with debounce |
+| `desktop/platform_router.py` | Accessibility backend routing + visual fallback |
+| `desktop/visual_analyzer.py` | Claude Vision API for element identification |
+| `desktop/platform_utils.py` | OS detection and capability reporting |
 
 ## Templates
 
