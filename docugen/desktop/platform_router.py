@@ -7,6 +7,7 @@ the capture infrastructure with platform-specific accessibility APIs.
 import logging
 from typing import Optional, Protocol
 
+from .element_metadata import ElementMetadata
 from .platform_utils import get_os, get_platform, PlatformInfo
 
 logger = logging.getLogger(__name__)
@@ -97,7 +98,7 @@ def get_element_metadata(
         config: Optional FallbackConfig for custom behavior.
 
     Returns:
-        Element metadata dict or None.
+        ElementMetadata dict or None.
     """
     from .fallback_manager import get_element_metadata_with_fallback
 
