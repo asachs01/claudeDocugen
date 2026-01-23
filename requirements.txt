@@ -3,4 +3,6 @@ Pillow>=10.0.0
 pywin32>=306; sys_platform == 'win32'
 pyobjc-core>=10.0; sys_platform == 'darwin'
 pyobjc-framework-Quartz>=10.0; sys_platform == 'darwin'
+pyobjc-framework-Cocoa>=10.0; sys_platform == 'darwin'
+atomacos>=2.0.0; sys_platform == 'darwin'
 python-xlib>=0.33; sys_platform == 'linux'
