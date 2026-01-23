@@ -27,6 +27,8 @@ from .fallback_manager import (
 )
 from .fallback_config import FallbackConfig
 from .fallback_metrics import MetricsCollector
+from .annotation_orchestrator import annotate_screenshot
+from .annotation_config import AnnotationConfig
 
 __all__ = [
     "ScreenCapture",
@@ -58,4 +60,6 @@ __all__ = [
     "get_element_metadata_with_fallback",
     "FallbackConfig",
     "MetricsCollector",
+    "annotate_screenshot",
+    "AnnotationConfig",
 ]

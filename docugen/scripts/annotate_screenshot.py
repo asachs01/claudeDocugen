@@ -854,6 +854,22 @@ def main():
         action='store_true',
         help='Disable auto-scale detection, use --scale value directly'
     )
+    parser.add_argument(
+        '--desktop',
+        action='store_true',
+        help='Use desktop element annotation with accessibility APIs (Windows/macOS)'
+    )
+    parser.add_argument(
+        '--platform',
+        type=str,
+        choices=['windows', 'macos', 'linux'],
+        help='Platform for desktop annotation (auto-detected if not specified)'
+    )
+    parser.add_argument(
+        '--coords',
+        type=str,
+        help='Interaction coordinates for desktop annotation: x,y (required with --desktop)'
+    )
 
     args = parser.parse_args()
 
@@ -865,6 +881,51 @@ def main():
     if not args.input.exists():
         print(f"Error: Input image not found: {args.input}", file=sys.stderr)
         sys.exit(2)
+
+    # Desktop annotation mode - use annotation_orchestrator
+    if args.desktop:
+        if not args.coords:
+            print("Error: --coords required with --desktop", file=sys.stderr)
+            sys.exit(2)
+
+        try:
+            x_str, y_str = args.coords.split(',')
+            coords = (int(x_str), int(y_str))
+        except (ValueError, AttributeError):
+            print("Error: --coords must be in format x,y (e.g., 100,200)", file=sys.stderr)
+            sys.exit(2)
+
+        # Import desktop annotation
+        try:
+            from docugen.desktop import annotate_screenshot as desktop_annotate
+            from docugen.desktop import AnnotationConfig
+            from docugen.desktop.platform_utils import get_os
+        except ImportError as e:
+            print(f"Error: Desktop annotation unavailable: {e}", file=sys.stderr)
+            sys.exit(2)
+
+        # Determine platform
+        platform = args.platform or get_os()
+
+        # Read input image
+        with open(args.input, 'rb') as f:
+            image_bytes = f.read()
+
+        # Annotate using desktop orchestrator
+        config = AnnotationConfig()
+        annotated_bytes = desktop_annotate(
+            image_bytes,
+            coords,
+            platform,
+            config=config,
+        )
+
+        # Write output
+        with open(args.output, 'wb') as f:
+            f.write(annotated_bytes)
+
+        print(f"Desktop annotation complete: {args.output}")
+        return
 
     styles = load_styles(args.style)
     img = Image.open(args.input).convert('RGBA')
