@@ -483,6 +483,95 @@ def draw_click_indicator(
         draw.text((x + inner_r + 2, y - 6), "R", fill=color[:3], font=font)
 
 
+def normalize_desktop_element(element: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Normalize a desktop element (from visual_analyzer or accessibility backend)
+    to the Playwright-style format used by smart_annotate.
+
+    Desktop elements use 'bounds' with {x, y, width, height}.
+    Playwright elements use 'boundingBox' with {x, y, width, height}.
+
+    Args:
+        element: Desktop element dict with 'bounds', 'name', 'type', 'source'.
+
+    Returns:
+        Normalized element dict compatible with smart_annotate.
+    """
+    normalized = dict(element)
+
+    # Convert 'bounds' to 'boundingBox' if needed
+    if 'bounds' in normalized and 'boundingBox' not in normalized:
+        normalized['boundingBox'] = normalized['bounds']
+
+    # Map 'name' to 'text' for display
+    if 'name' in normalized and 'text' not in normalized:
+        normalized['text'] = normalized['name']
+
+    # Map desktop 'type' to web-style tag/role
+    type_to_tag = {
+        'button': 'button',
+        'input': 'input',
+        'link': 'a',
+        'checkbox': 'input',
+        'dropdown': 'select',
+        'menu': 'menuitem',
+        'tab': 'tab',
+    }
+    if 'type' in normalized and 'tagName' not in normalized:
+        normalized['tagName'] = type_to_tag.get(normalized['type'], 'div')
+
+    # Mark as target so smart_annotate picks it up
+    normalized['isTarget'] = True
+
+    return normalized
+
+
+def draw_desktop_element(
+    img: Image.Image,
+    draw: ImageDraw.Draw,
+    element: Dict[str, Any],
+    step_number: int,
+    styles: dict,
+    scale_factor: float = 1.0
+) -> Image.Image:
+    """
+    Draw annotation for a desktop-captured element with source-aware styling.
+
+    Accessibility-sourced elements get solid borders (precise bounds).
+    Vision-sourced elements get styling based on confidence score.
+
+    Args:
+        img: PIL Image object
+        draw: PIL ImageDraw object
+        element: Desktop element with 'bounds', 'source', 'confidence'
+        step_number: Step number for callout
+        styles: Style configuration
+        scale_factor: DPI scale factor
+
+    Returns:
+        Annotated image
+    """
+    normalized = normalize_desktop_element(element)
+    source = element.get('source', 'accessibility')
+    confidence = element.get('confidence', 1.0)
+
+    # Customize styles based on source
+    element_styles = styles.copy()
+    if source == 'visual':
+        # Visual estimates: orange color, thinner for low confidence
+        element_styles['highlight_color'] = (255, 165, 0, 180)  # Orange
+        if confidence < 0.8:
+            element_styles['highlight_width'] = 2  # Thinner for uncertain
+        else:
+            element_styles['highlight_width'] = 3
+    else:
+        # Accessibility: solid red-orange (default), full width
+        element_styles['highlight_color'] = (255, 87, 51, 180)
+        element_styles['highlight_width'] = 3
+
+    return smart_annotate(img, draw, [normalized], step_number, element_styles, scale_factor)
+
+
 def smart_annotate(
     img: Image.Image,
     draw: ImageDraw.Draw,

@@ -508,18 +508,53 @@ def generate_step_section(
     """
     Generate markdown for a single step with WCAG-compliant alt text.
 
+    Supports both web (Playwright) and desktop (mss/accessibility) steps.
+    Desktop steps include application context and element source info.
+
     Args:
-        step: Step data dictionary
+        step: Step data dictionary. Desktop steps may include:
+            - mode: 'web' or 'desktop'
+            - app_name: Application name (desktop only)
+            - window_title: Window title (desktop only)
+            - element: {name, type, source, confidence} (desktop only)
         image_dir: Relative path to images directory
         embed_images: If True, embed images as base64 (FR-3.6)
         base_path: Base path for resolving image files when embedding
     """
+    step_mode = step.get('mode', 'web')
     lines = [
         f"### Step {step['number']}: {step['title']}",
         "",
-        step['description'],
-        ""
     ]
+
+    # Add application context for desktop steps
+    if step_mode == 'desktop' and step.get('app_name'):
+        lines.append(f"**Application:** {step['app_name']}")
+        if step.get('window_title') and step['window_title'] != step.get('app_name'):
+            lines[-1] += f" - {step['window_title']}"
+        lines.append("")
+
+    # Step description
+    lines.append(step['description'])
+    lines.append("")
+
+    # Element interaction info for desktop steps
+    if step_mode == 'desktop' and step.get('element'):
+        elem = step['element']
+        elem_name = elem.get('name', 'element')
+        elem_type = elem.get('type', '')
+        source = elem.get('source', 'accessibility')
+
+        if source == 'visual':
+            confidence = elem.get('confidence', 0.5)
+            lines.append(
+                f"Click **{elem_name}** ({elem_type}, "
+                f"identified via visual analysis, "
+                f"{int(confidence * 100)}% confidence)"
+            )
+        else:
+            lines.append(f"Click **{elem_name}** ({elem_type})")
+        lines.append("")
 
     if step.get('screenshot'):
         screenshot_path = step['screenshot']
