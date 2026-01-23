@@ -232,7 +232,7 @@
         "dependencies": [
           5
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -245,7 +245,7 @@
         "dependencies": [
           5
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -259,7 +259,7 @@
           2,
           3
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -273,7 +273,7 @@
           6,
           8
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -287,7 +287,7 @@
           2,
           9
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -314,7 +314,7 @@
           5,
           7
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -325,7 +325,7 @@
         "testStrategy": "Manual testing with varied user requests containing desktop/web keywords. Verify correct mode selection for ambiguous cases. Confirm fallback logic when Playwright unavailable. Check session metadata captures correct mode.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -362,7 +362,7 @@
         "dependencies": [
           14
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -375,7 +375,7 @@
         "dependencies": [
           14
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -390,7 +390,7 @@
           14,
           15
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -404,7 +404,7 @@
           16,
           17
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -418,7 +418,7 @@
           15,
           19
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -442,7 +442,7 @@
         "dependencies": [
           18
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -456,7 +456,7 @@
           18,
           20
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
