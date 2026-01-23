@@ -839,25 +839,18 @@ class TestPlatformRouterIntegration:
         result = backend.get_element_at_point(100, 200)
         assert result["source"] == "accessibility"
 
-    @patch("docugen.desktop.platform_router.get_os", return_value="macos")
-    @patch(
-        "docugen.desktop.platform_router.get_accessibility_backend",
-        return_value=None,
-    )
-    @patch("docugen.desktop.visual_analyzer.analyze_screenshot")
-    def test_fallback_to_visual_analysis(
-        self, mock_visual, mock_backend, mock_get_os
-    ):
+    @patch("docugen.desktop.visual_analyzer.analyze_screenshot_cached")
+    def test_fallback_to_visual_analysis(self, mock_visual):
         """Test fallback to visual analysis when accessibility unavailable."""
         from docugen.desktop.platform_router import get_element_metadata
 
-        # Mock visual analyzer return value
+        # Mock visual analyzer return value (called by visual_fallback.py)
         mock_visual.return_value = [
             {
                 "title": "Visual Button",
                 "role": "button",
                 "bounds": {"x": 100, "y": 200, "width": 80, "height": 30},
-                "source": "vision",
+                "confidence": 0.6,
             }
         ]
 
@@ -865,5 +858,5 @@ class TestPlatformRouterIntegration:
 
         # Should fall back to visual analysis
         assert result is not None
-        assert result["source"] == "vision"
+        assert result["source"] == "visual"
         mock_visual.assert_called_once()

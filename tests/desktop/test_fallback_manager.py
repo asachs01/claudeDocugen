@@ -273,7 +273,9 @@ def test_successful_accessibility_api(mock_backend, manager):
 
 def test_convenience_function():
     """Test module-level convenience function."""
-    with patch("docugen.desktop.fallback_manager.FallbackManager") as mock_manager_class:
+    # Reset global manager to ensure fresh initialization
+    with patch("docugen.desktop.fallback_manager._manager", None), \
+         patch("docugen.desktop.fallback_manager.FallbackManager") as mock_manager_class:
         mock_instance = MagicMock()
         mock_manager_class.return_value = mock_instance
         mock_instance.get_element_metadata_with_fallback.return_value = ElementMetadata(

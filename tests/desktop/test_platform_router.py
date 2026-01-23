@@ -1,5 +1,6 @@
 """Tests for platform_router module."""
 
+import sys
 import unittest
 from unittest.mock import patch, MagicMock
 
@@ -11,14 +12,24 @@ class TestGetAccessibilityBackend(unittest.TestCase):
     def test_windows_no_pywinauto(self, mock_os):
         """Returns None when windows_accessibility module unavailable."""
         from docugen.desktop.platform_router import get_accessibility_backend
-        result = get_accessibility_backend()
+
+        # Block the windows_accessibility module import
+        with patch.dict(sys.modules, {
+            "docugen.desktop.windows_accessibility": None,
+        }):
+            result = get_accessibility_backend()
         self.assertIsNone(result)
 
     @patch("docugen.desktop.platform_router.get_os", return_value="macos")
     def test_macos_no_atomacos(self, mock_os):
         """Returns None with warning when atomacos unavailable."""
         from docugen.desktop.platform_router import get_accessibility_backend
-        result = get_accessibility_backend()
+
+        # Block the macos_accessibility module import
+        with patch.dict(sys.modules, {
+            "docugen.desktop.macos_accessibility": None,
+        }):
+            result = get_accessibility_backend()
         self.assertIsNone(result)
 
     @patch("docugen.desktop.platform_router.get_os", return_value="linux")

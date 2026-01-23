@@ -373,7 +373,9 @@ class TestStepDetectorMergeSteps(unittest.TestCase):
             detector.capture_after("third action")
 
         self.assertEqual(detector.step_count, 3)
-        merged = detector.merge_steps(1, 2)
+
+        with patch.object(detector, "_compare", return_value=0.60):
+            merged = detector.merge_steps(1, 2)
 
         self.assertIsNotNone(merged)
         self.assertEqual(merged.detection_method, "merged")
@@ -424,7 +426,8 @@ class TestStepDetectorMergeSteps(unittest.TestCase):
             detector.capture_after("important action")
             detector.capture_after("")
 
-        merged = detector.merge_steps(1, 2)
+        with patch.object(detector, "_compare", return_value=0.60):
+            merged = detector.merge_steps(1, 2)
         self.assertEqual(merged.description, "important action")
 
 
