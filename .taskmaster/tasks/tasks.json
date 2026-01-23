@@ -61,7 +61,7 @@
         "title": "Implement generate_markdown.py with default walkthrough template",
         "description": "Create template-based markdown assembly using walkthrough.md template (FR-3.1, FR-3.3).",
         "details": "Jinja2 templating: render template with session_data JSON. Structure: Overview, Prerequisites (FR-3.4), Steps with annotated images + expected results (FR-3.5), Troubleshooting stub. Use relative image paths: ![Step 1](./images/step-01.png). Consistent naming: step-{step_num:02d}-{description_slug}.png. Include alt text for WCAG compliance.",
-        "testStrategy": "Generate markdown from sample session data. Validate: proper markdown syntax, all images referenced, Flesch-Kincaid grade 7-8, step length ≤25 words.",
+        "testStrategy": "Generate markdown from sample session data. Validate: proper markdown syntax, all images referenced, Flesch-Kincaid grade 7-8, step length \u226425 words.",
         "priority": "high",
         "dependencies": [
           "14"
@@ -74,7 +74,7 @@
         "id": 16,
         "title": "Create core reference documents and default templates",
         "description": "Implement references/writing_style_guide.md, annotation_conventions.md and templates/walkthrough.md, quick_reference.md.",
-        "details": "writing_style_guide.md: imperative verbs, active voice, ≤25 words/step, expected results format. annotation_conventions.md: red boxes=primary action, blue=related, arrow specs. templates/: walkthrough.md with PRD sample structure, quick_reference.md (condensed), tutorial.md (pedagogical).",
+        "details": "writing_style_guide.md: imperative verbs, active voice, \u226425 words/step, expected results format. annotation_conventions.md: red boxes=primary action, blue=related, arrow specs. templates/: walkthrough.md with PRD sample structure, quick_reference.md (condensed), tutorial.md (pedagogical).",
         "testStrategy": "Validate templates render correctly with sample data. Check style guide compliance in generated output via readability analysis.",
         "priority": "medium",
         "dependencies": [
@@ -179,7 +179,7 @@
         "dependencies": [
           1
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -192,7 +192,7 @@
         "dependencies": [
           2
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -205,7 +205,7 @@
         "dependencies": [
           3
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -219,7 +219,7 @@
           3,
           4
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": []
       },
       {
@@ -321,7 +321,7 @@
         "id": 13,
         "title": "Enhance SKILL.md with Desktop Mode Triggers and Detection Logic",
         "description": "Update SKILL.md to detect desktop vs web workflows and route appropriately",
-        "details": "Modify SKILL.md frontmatter to include desktop-specific trigger phrases (\"document desktop workflow\", \"Windows application\", \"macOS app\", etc.). Implement mode detection logic that analyzes user request for desktop keywords (native app, system settings, file explorer) vs web keywords (browser, URL, website). Add capability to detect if Playwright MCP is available to inform routing decisions. Update description to clearly indicate dual web+desktop support. Reference PRD Appendix mode_detection_logic for keyword lists.\n\nImplementation:\n1. Add desktop triggers to YAML frontmatter: \"document Windows application\", \"capture macOS workflow\", \"desktop software guide\"\n2. In Phase 1 Initiation, add mode detection step before MCP validation\n3. Create decision tree: explicit desktop keywords → desktop mode, URL provided → web mode, Playwright available → web mode (default), else → desktop mode\n4. Store detected mode in session metadata for later phases\n5. Update workflow description to mention cross-platform desktop capture alongside web\n\nValidation: Test with requests like \"document Chrome settings\" (desktop), \"document GitHub workflow\" (web), \"create guide for VS Code\" (desktop)",
+        "details": "Modify SKILL.md frontmatter to include desktop-specific trigger phrases (\"document desktop workflow\", \"Windows application\", \"macOS app\", etc.). Implement mode detection logic that analyzes user request for desktop keywords (native app, system settings, file explorer) vs web keywords (browser, URL, website). Add capability to detect if Playwright MCP is available to inform routing decisions. Update description to clearly indicate dual web+desktop support. Reference PRD Appendix mode_detection_logic for keyword lists.\n\nImplementation:\n1. Add desktop triggers to YAML frontmatter: \"document Windows application\", \"capture macOS workflow\", \"desktop software guide\"\n2. In Phase 1 Initiation, add mode detection step before MCP validation\n3. Create decision tree: explicit desktop keywords \u2192 desktop mode, URL provided \u2192 web mode, Playwright available \u2192 web mode (default), else \u2192 desktop mode\n4. Store detected mode in session metadata for later phases\n5. Update workflow description to mention cross-platform desktop capture alongside web\n\nValidation: Test with requests like \"document Chrome settings\" (desktop), \"document GitHub workflow\" (web), \"create guide for VS Code\" (desktop)",
         "testStrategy": "Manual testing with varied user requests containing desktop/web keywords. Verify correct mode selection for ambiguous cases. Confirm fallback logic when Playwright unavailable. Check session metadata captures correct mode.",
         "priority": "high",
         "dependencies": [],
@@ -336,7 +336,7 @@
         "testStrategy": "Unit tests on all three platforms. Mock ImportError to test fallback behavior. Verify capabilities dict accuracy. Test with and without optional dependencies installed.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": []
       },
       {
@@ -369,7 +369,7 @@
         "id": 17,
         "title": "Implement macOS Accessibility Integration via atomacos",
         "description": "Create macOS-specific accessibility module with permission handling",
-        "details": "Create docugen/desktop/macos_accessibility.py using atomacos Apple Accessibility API bindings. Implement permission check via AXIsProcessTrusted() before attempting element queries. If permission denied, return None and log clear instructions for granting access in System Preferences → Security & Privacy → Privacy → Accessibility. Implement get_element_at_point(x, y) using AXUIElementCopyElementAtPosition. Extract AX attributes (AXRole, AXTitle, AXPosition, AXSize) and map to common element metadata format.\n\nImplementation:\n```python\nimport atomacos\nfrom ApplicationServices import AXIsProcessTrusted\n\nclass MacOSAccessibility:\n    def __init__(self):\n        self.has_permission = self._check_permission()\n    \n    def _check_permission(self):\n        if not AXIsProcessTrusted():\n            logger.warning(\n                \"Accessibility permission required. Grant in:\\n\"\n                \"System Preferences → Security & Privacy → Privacy → Accessibility\\n\"\n                \"Add your terminal or IDE to the allowed list.\"\n            )\n            return False\n        return True\n    \n    def get_element_at_point(self, x: int, y: int):\n        if not self.has_permission:\n            return None\n        \n        try:\n            # Get system-wide accessibility object\n            app = atomacos.getAppRefByPid(atomacos.NativeUIElement._getpid())\n            element = app.AXUIElementCopyElementAtPosition(x, y)\n            \n            return {\n                'name': element.AXTitle or element.AXDescription,\n                'role': element.AXRole,\n                'position': element.AXPosition,  # (x, y) tuple\n                'size': element.AXSize,  # (width, height) tuple\n                'enabled': element.AXEnabled\n            }\n        except Exception as e:\n            logger.debug(f\"macOS accessibility query failed: {e}\")\n            return None\n```",
+        "details": "Create docugen/desktop/macos_accessibility.py using atomacos Apple Accessibility API bindings. Implement permission check via AXIsProcessTrusted() before attempting element queries. If permission denied, return None and log clear instructions for granting access in System Preferences \u2192 Security & Privacy \u2192 Privacy \u2192 Accessibility. Implement get_element_at_point(x, y) using AXUIElementCopyElementAtPosition. Extract AX attributes (AXRole, AXTitle, AXPosition, AXSize) and map to common element metadata format.\n\nImplementation:\n```python\nimport atomacos\nfrom ApplicationServices import AXIsProcessTrusted\n\nclass MacOSAccessibility:\n    def __init__(self):\n        self.has_permission = self._check_permission()\n    \n    def _check_permission(self):\n        if not AXIsProcessTrusted():\n            logger.warning(\n                \"Accessibility permission required. Grant in:\\n\"\n                \"System Preferences \u2192 Security & Privacy \u2192 Privacy \u2192 Accessibility\\n\"\n                \"Add your terminal or IDE to the allowed list.\"\n            )\n            return False\n        return True\n    \n    def get_element_at_point(self, x: int, y: int):\n        if not self.has_permission:\n            return None\n        \n        try:\n            # Get system-wide accessibility object\n            app = atomacos.getAppRefByPid(atomacos.NativeUIElement._getpid())\n            element = app.AXUIElementCopyElementAtPosition(x, y)\n            \n            return {\n                'name': element.AXTitle or element.AXDescription,\n                'role': element.AXRole,\n                'position': element.AXPosition,  # (x, y) tuple\n                'size': element.AXSize,  # (width, height) tuple\n                'enabled': element.AXEnabled\n            }\n        except Exception as e:\n            logger.debug(f\"macOS accessibility query failed: {e}\")\n            return None\n```",
         "testStrategy": "Test on macOS 12+ with permission granted and denied. Verify clear permission instructions displayed. Test with native macOS apps (TextEdit, Finder, System Preferences, Safari). Verify element identification accuracy when permission granted. Confirm graceful fallback to visual mode when denied.",
         "priority": "medium",
         "dependencies": [
@@ -425,7 +425,7 @@
         "id": 21,
         "title": "Create Desktop Setup Documentation",
         "description": "Write references/desktop_setup.md with platform-specific installation and permission instructions",
-        "details": "Create docugen/references/desktop_setup.md following PRD Appendix A structure. Document: 1) Core requirements (mss, Pillow, scikit-image - already in requirements.txt), 2) Optional Windows dependencies (pywinauto, comtypes) with pip commands, 3) Optional macOS dependencies (atomacos, pyobjc-framework-Cocoa) with pip commands and permission grant instructions, 4) Linux dependencies (python-xlib) noting visual-only mode. Include troubleshooting section for common issues (permission denied, DPI scaling, window enumeration failures). Add platform-specific screenshots showing permission dialogs.\n\nStructure:\n```markdown\n# Desktop Capture Setup\n\n## Core Requirements (All Platforms)\n```bash\npip install mss Pillow scikit-image\n```\n\n## Windows (Optional: Precise Element Identification)\n```bash\npip install pywinauto comtypes\n```\nNo additional permissions required.\n\n## macOS (Optional: Precise Element Identification)\n```bash\npip install atomacos pyobjc-framework-Cocoa pyobjc-framework-Quartz\n```\n\n### Granting Accessibility Permission\n1. Open System Preferences → Security & Privacy\n2. Click Privacy tab → Select Accessibility\n3. Click lock icon and authenticate\n4. Add your terminal app (Terminal.app, iTerm2) or IDE\n5. Restart application\n\n[Screenshot of macOS Privacy settings]\n\n## Linux (Visual-Only Mode)\n```bash\npip install python-xlib  # X11 only, Wayland not supported\n```\nNo accessibility integration available. Visual analysis via Claude only.\n\n## Troubleshooting\n**\"Permission denied\" on macOS**: Grant accessibility permission per above\n**Element bounds misaligned**: Check DPI scaling settings\n**Window enumeration empty**: Ensure windows are visible and not minimized\n```",
+        "details": "Create docugen/references/desktop_setup.md following PRD Appendix A structure. Document: 1) Core requirements (mss, Pillow, scikit-image - already in requirements.txt), 2) Optional Windows dependencies (pywinauto, comtypes) with pip commands, 3) Optional macOS dependencies (atomacos, pyobjc-framework-Cocoa) with pip commands and permission grant instructions, 4) Linux dependencies (python-xlib) noting visual-only mode. Include troubleshooting section for common issues (permission denied, DPI scaling, window enumeration failures). Add platform-specific screenshots showing permission dialogs.\n\nStructure:\n```markdown\n# Desktop Capture Setup\n\n## Core Requirements (All Platforms)\n```bash\npip install mss Pillow scikit-image\n```\n\n## Windows (Optional: Precise Element Identification)\n```bash\npip install pywinauto comtypes\n```\nNo additional permissions required.\n\n## macOS (Optional: Precise Element Identification)\n```bash\npip install atomacos pyobjc-framework-Cocoa pyobjc-framework-Quartz\n```\n\n### Granting Accessibility Permission\n1. Open System Preferences \u2192 Security & Privacy\n2. Click Privacy tab \u2192 Select Accessibility\n3. Click lock icon and authenticate\n4. Add your terminal app (Terminal.app, iTerm2) or IDE\n5. Restart application\n\n[Screenshot of macOS Privacy settings]\n\n## Linux (Visual-Only Mode)\n```bash\npip install python-xlib  # X11 only, Wayland not supported\n```\nNo accessibility integration available. Visual analysis via Claude only.\n\n## Troubleshooting\n**\"Permission denied\" on macOS**: Grant accessibility permission per above\n**Element bounds misaligned**: Check DPI scaling settings\n**Window enumeration empty**: Ensure windows are visible and not minimized\n```",
         "testStrategy": "Manual validation on all three platforms. Test installation commands work from scratch. Verify macOS permission instructions lead to successful access. Confirm Linux setup note about Wayland limitation. Peer review for clarity.",
         "priority": "low",
         "dependencies": [],
@@ -449,7 +449,7 @@
         "id": 23,
         "title": "Update generate_markdown.py for Unified Web+Desktop Output",
         "description": "Enhance markdown generation to handle mixed web/desktop workflows in single document",
-        "details": "Extend docugen/scripts/generate_markdown.py to accept steps from both web (Playwright) and desktop (screenshot-based) sources. Add step metadata indicating capture mode (web/desktop/mixed). For desktop steps, include application name and window title in step context. Update template rendering to show platform indicators (📱 for desktop, 🌐 for web). Support mixed workflows where some steps are web (e.g., download from website) and some are desktop (e.g., install and configure). Maintain consistent formatting across capture types per PRD US-D10.\n\nEnhancement:\n```python\ndef generate_step_markdown(step_data):\n    mode_icon = '🌐' if step_data['mode'] == 'web' else '📱'\n    markdown = f\"### {mode_icon} Step {step_data['step']}: {step_data['title']}\\n\\n\"\n    \n    # Add context (app/window for desktop, URL for web)\n    if step_data['mode'] == 'desktop':\n        markdown += f\"**Application:** {step_data.get('app_name', 'Desktop')}\\n\\n\"\n    else:\n        markdown += f\"**Page:** {step_data.get('url', 'Web')}\\n\\n\"\n    \n    # Element information (consistent format)\n    if 'element' in step_data:\n        elem = step_data['element']\n        source = elem.get('source', 'accessibility')\n        markdown += f\"Click **{elem['name']}** \"\n        if source == 'visual':\n            markdown += f\"(identified via AI vision, {int(elem['confidence']*100)}% confidence)\\n\\n\"\n        else:\n            markdown += f\"({elem['control_type']})\\n\\n\"\n    \n    # Screenshot and expected result (same for both modes)\n    markdown += f\"![Step {step_data['step']}](./images/{step_data['screenshot']})\\n\\n\"\n    markdown += f\"**Expected result:** {step_data['expected_result']}\\n\\n\"\n    \n    return markdown\n```",
+        "details": "Extend docugen/scripts/generate_markdown.py to accept steps from both web (Playwright) and desktop (screenshot-based) sources. Add step metadata indicating capture mode (web/desktop/mixed). For desktop steps, include application name and window title in step context. Update template rendering to show platform indicators (\ud83d\udcf1 for desktop, \ud83c\udf10 for web). Support mixed workflows where some steps are web (e.g., download from website) and some are desktop (e.g., install and configure). Maintain consistent formatting across capture types per PRD US-D10.\n\nEnhancement:\n```python\ndef generate_step_markdown(step_data):\n    mode_icon = '\ud83c\udf10' if step_data['mode'] == 'web' else '\ud83d\udcf1'\n    markdown = f\"### {mode_icon} Step {step_data['step']}: {step_data['title']}\\n\\n\"\n    \n    # Add context (app/window for desktop, URL for web)\n    if step_data['mode'] == 'desktop':\n        markdown += f\"**Application:** {step_data.get('app_name', 'Desktop')}\\n\\n\"\n    else:\n        markdown += f\"**Page:** {step_data.get('url', 'Web')}\\n\\n\"\n    \n    # Element information (consistent format)\n    if 'element' in step_data:\n        elem = step_data['element']\n        source = elem.get('source', 'accessibility')\n        markdown += f\"Click **{elem['name']}** \"\n        if source == 'visual':\n            markdown += f\"(identified via AI vision, {int(elem['confidence']*100)}% confidence)\\n\\n\"\n        else:\n            markdown += f\"({elem['control_type']})\\n\\n\"\n    \n    # Screenshot and expected result (same for both modes)\n    markdown += f\"![Step {step_data['step']}](./images/{step_data['screenshot']})\\n\\n\"\n    markdown += f\"**Expected result:** {step_data['expected_result']}\\n\\n\"\n    \n    return markdown\n```",
         "testStrategy": "Test with web-only, desktop-only, and mixed workflows. Verify mode icons display correctly. Confirm desktop steps show application context. Test visual vs accessibility element source indicators. Validate output consistency with existing web documentation format. Generate sample mixed workflow (download file from web, install on desktop) and verify coherent output.",
         "priority": "medium",
         "dependencies": [
