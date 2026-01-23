@@ -87,13 +87,13 @@ def get_element_metadata(
 ) -> Optional[dict]:
     """Get UI element metadata at coordinates, using best available method.
 
-    Tries accessibility backend first. Falls back to None (caller can
-    use visual analysis if needed).
+    Tries accessibility backend first. Falls back to Claude Vision analysis
+    if a screenshot path is provided.
 
     Args:
         x: Screen X coordinate.
         y: Screen Y coordinate.
-        screenshot_path: Path to screenshot (for potential visual fallback).
+        screenshot_path: Path to screenshot for visual fallback.
 
     Returns:
         Element metadata dict or None.
@@ -104,5 +104,13 @@ def get_element_metadata(
         if element:
             element["source"] = "accessibility"
             return element
+
+    # Visual fallback via Claude Vision
+    if screenshot_path:
+        from .visual_analyzer import analyze_screenshot
+
+        elements = analyze_screenshot(screenshot_path, click_coords=(x, y))
+        if elements:
+            return elements[0]  # Return the closest/best match
 
     return None

@@ -219,7 +219,7 @@
           3,
           4
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -336,7 +336,7 @@
         "testStrategy": "Unit tests on all three platforms. Mock ImportError to test fallback behavior. Verify capabilities dict accuracy. Test with and without optional dependencies installed.",
         "priority": "high",
         "dependencies": [],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -349,7 +349,7 @@
         "dependencies": [
           14
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": []
       },
       {
