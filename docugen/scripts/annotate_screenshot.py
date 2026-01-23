@@ -526,6 +526,59 @@ def normalize_desktop_element(element: Dict[str, Any]) -> Dict[str, Any]:
     return normalized
 
 
+def _draw_dashed_rectangle(
+    draw: ImageDraw.Draw,
+    coords: Tuple[int, int, int, int],
+    color: Tuple[int, ...],
+    width: int = 2,
+    dash_length: int = 8,
+    gap_length: int = 5,
+) -> None:
+    """
+    Draw a dashed rectangle outline.
+
+    PIL doesn't support dashed lines natively, so we draw short line segments.
+
+    Args:
+        draw: PIL ImageDraw object
+        coords: (x, y, w, h) of the region
+        color: Line color
+        width: Line width
+        dash_length: Length of each dash segment
+        gap_length: Length of gaps between dashes
+    """
+    x, y, w, h = coords
+    stride = dash_length + gap_length
+
+    # Top edge
+    pos = 0
+    while pos < w:
+        end = min(pos + dash_length, w)
+        draw.line([(x + pos, y), (x + end, y)], fill=color, width=width)
+        pos += stride
+
+    # Bottom edge
+    pos = 0
+    while pos < w:
+        end = min(pos + dash_length, w)
+        draw.line([(x + pos, y + h), (x + end, y + h)], fill=color, width=width)
+        pos += stride
+
+    # Left edge
+    pos = 0
+    while pos < h:
+        end = min(pos + dash_length, h)
+        draw.line([(x, y + pos), (x, y + end)], fill=color, width=width)
+        pos += stride
+
+    # Right edge
+    pos = 0
+    while pos < h:
+        end = min(pos + dash_length, h)
+        draw.line([(x + w, y + pos), (x + w, y + end)], fill=color, width=width)
+        pos += stride
+
+
 def draw_desktop_element(
     img: Image.Image,
     draw: ImageDraw.Draw,
@@ -538,7 +591,8 @@ def draw_desktop_element(
     Draw annotation for a desktop-captured element with source-aware styling.
 
     Accessibility-sourced elements get solid borders (precise bounds).
-    Vision-sourced elements get styling based on confidence score.
+    Vision-sourced elements get dashed borders when confidence < 0.8,
+    solid borders when confidence >= 0.8.
 
     Args:
         img: PIL Image object
@@ -555,21 +609,65 @@ def draw_desktop_element(
     source = element.get('source', 'accessibility')
     confidence = element.get('confidence', 1.0)
 
-    # Customize styles based on source
-    element_styles = styles.copy()
-    if source == 'visual':
-        # Visual estimates: orange color, thinner for low confidence
-        element_styles['highlight_color'] = (255, 165, 0, 180)  # Orange
-        if confidence < 0.8:
-            element_styles['highlight_width'] = 2  # Thinner for uncertain
-        else:
-            element_styles['highlight_width'] = 3
-    else:
-        # Accessibility: solid red-orange (default), full width
-        element_styles['highlight_color'] = (255, 87, 51, 180)
-        element_styles['highlight_width'] = 3
+    if 'boundingBox' not in normalized:
+        return img
 
-    return smart_annotate(img, draw, [normalized], step_number, element_styles, scale_factor)
+    # Get scaled coordinates
+    x, y, w, h = transform_bounding_box(normalized['boundingBox'], scale_factor)
+    if w < 5 or h < 5:
+        return img
+
+    # Source-aware styling
+    if source == 'visual' and confidence < 0.8:
+        # Low-confidence visual: dashed orange border
+        color = (255, 165, 0)
+        _draw_dashed_rectangle(draw, (x, y, w, h), color=color, width=2)
+    elif source == 'visual':
+        # High-confidence visual: solid orange border
+        color = (255, 165, 0)
+        draw.rectangle([x, y, x + w, y + h], outline=color, width=3)
+    else:
+        # Accessibility: solid red-orange border
+        color = (255, 87, 51)
+        draw.rectangle([x, y, x + w, y + h], outline=color, width=3)
+
+    # Add element label above the box
+    label = normalized.get('text', '') or normalized.get('title', '')
+    if label:
+        label_text = label[:40]  # Truncate long labels
+        if source == 'visual' and confidence < 1.0:
+            label_text += f" ({int(confidence * 100)}%)"
+
+        try:
+            font = ImageFont.truetype(
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 12
+            )
+        except OSError:
+            font = ImageFont.load_default()
+
+        bbox = draw.textbbox((0, 0), label_text, font=font)
+        text_w = bbox[2] - bbox[0]
+        text_h = bbox[3] - bbox[1]
+        label_y = max(0, y - text_h - 4)
+
+        # Draw label background
+        draw.rectangle(
+            [x, label_y, x + text_w + 6, label_y + text_h + 4],
+            fill=color,
+        )
+        draw.text(
+            (x + 3, label_y + 2),
+            label_text,
+            fill=(255, 255, 255),
+            font=font,
+        )
+
+    # Add step callout
+    callout_x = x + w + 5
+    callout_y = y
+    draw_callout(img, draw, (callout_x, callout_y), step_number, styles)
+
+    return img
 
 
 def smart_annotate(
