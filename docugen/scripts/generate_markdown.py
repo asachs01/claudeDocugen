@@ -603,11 +603,55 @@ def generate_troubleshooting_section(issues: List[Dict[str, str]]) -> str:
     return "\n".join(lines)
 
 
+def generate_frontmatter(data: Dict[str, Any]) -> str:
+    """Generate YAML frontmatter from workflow metadata.
+
+    Args:
+        data: Workflow data dictionary containing metadata fields.
+
+    Returns:
+        YAML frontmatter string (including --- delimiters).
+    """
+    lines = ["---"]
+    lines.append(f"title: \"{data.get('title', 'Untitled Workflow')}\"")
+
+    if data.get('description'):
+        # Escape quotes in description
+        desc = data['description'].replace('"', '\\"')
+        lines.append(f"description: \"{desc}\"")
+
+    if data.get('mode'):
+        lines.append(f"mode: {data['mode']}")
+
+    if data.get('platform'):
+        platform = data['platform']
+        if isinstance(platform, dict):
+            lines.append(f"platform: {platform.get('os', 'unknown')}")
+        else:
+            lines.append(f"platform: {platform}")
+
+    if data.get('app_name'):
+        lines.append(f"application: \"{data['app_name']}\"")
+
+    lines.append(f"date: \"{datetime.now().strftime('%Y-%m-%d')}\"")
+    lines.append(f"steps: {len(data.get('steps', []))}")
+
+    if data.get('tags'):
+        tags = data['tags']
+        if isinstance(tags, list):
+            lines.append(f"tags: [{', '.join(tags)}]")
+
+    lines.append("generator: DocuGen")
+    lines.append("---")
+    return "\n".join(lines)
+
+
 def generate_walkthrough(
     data: Dict[str, Any],
     embed_images: bool = False,
     base_path: Path = None,
-    include_toc: bool = True
+    include_toc: bool = True,
+    include_frontmatter: bool = False,
 ) -> str:
     """
     Generate a complete walkthrough document from workflow data.
@@ -617,12 +661,18 @@ def generate_walkthrough(
         embed_images: If True, embed images as base64 (FR-3.6)
         base_path: Base path for resolving image files when embedding
         include_toc: If True, include table of contents for 5+ steps (FR-4.3)
+        include_frontmatter: If True, include YAML frontmatter with metadata
 
     Returns:
         Complete markdown document string
     """
     sections = []
     toc_sections = []
+
+    # YAML frontmatter
+    if include_frontmatter:
+        sections.append(generate_frontmatter(data))
+        sections.append("")
 
     # Title
     sections.append(f"# {data['title']}")
@@ -775,6 +825,11 @@ def main():
         type=Path,
         help='Custom CSS file for PDF styling'
     )
+    parser.add_argument(
+        '--frontmatter',
+        action='store_true',
+        help='Include YAML frontmatter with workflow metadata'
+    )
 
     args = parser.parse_args()
 
@@ -811,7 +866,8 @@ def main():
             data,
             embed_images=args.embed_images,
             base_path=base_path,
-            include_toc=not args.no_toc
+            include_toc=not args.no_toc,
+            include_frontmatter=args.frontmatter,
         )
     elif args.template == 'quick_reference':
         output = generate_quick_reference(data)
@@ -821,7 +877,8 @@ def main():
             data,
             embed_images=args.embed_images,
             base_path=base_path,
-            include_toc=not args.no_toc
+            include_toc=not args.no_toc,
+            include_frontmatter=args.frontmatter,
         )
     else:
         print(f"Error: Unknown template: {args.template}", file=sys.stderr)
