@@ -83,34 +83,30 @@ def get_capture_capabilities() -> dict:
 
 
 def get_element_metadata(
-    x: int, y: int, screenshot_path: Optional[str] = None
+    x: int, y: int, screenshot_path: Optional[str] = None, config=None
 ) -> Optional[dict]:
     """Get UI element metadata at coordinates, using best available method.
 
-    Tries accessibility backend first. Falls back to Claude Vision analysis
-    if a screenshot path is provided.
+    Uses the robust fallback manager with timeout enforcement, permission
+    checking, and automatic visual analysis fallback.
 
     Args:
         x: Screen X coordinate.
         y: Screen Y coordinate.
         screenshot_path: Path to screenshot for visual fallback.
+        config: Optional FallbackConfig for custom behavior.
 
     Returns:
         Element metadata dict or None.
     """
-    backend = get_accessibility_backend()
-    if backend is not None:
-        element = backend.get_element_at_point(x, y)
-        if element:
-            element["source"] = "accessibility"
-            return element
+    from .fallback_manager import get_element_metadata_with_fallback
 
-    # Visual fallback via Claude Vision
-    if screenshot_path:
-        from .visual_analyzer import analyze_screenshot
+    os_type = get_os()
+    result = get_element_metadata_with_fallback(
+        x, y, os_type, screenshot_path, config=config
+    )
 
-        elements = analyze_screenshot(screenshot_path, click_coords=(x, y))
-        if elements:
-            return elements[0]  # Return the closest/best match
+    if result:
+        return result.to_dict()
 
     return None

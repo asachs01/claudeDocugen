@@ -21,6 +21,12 @@ from .metadata_normalization import (
     get_confidence_score,
     dict_to_element_metadata,
 )
+from .fallback_manager import (
+    FallbackManager,
+    get_element_metadata_with_fallback,
+)
+from .fallback_config import FallbackConfig
+from .fallback_metrics import MetricsCollector
 
 __all__ = [
     "ScreenCapture",
@@ -48,4 +54,8 @@ __all__ = [
     "normalize_macos_metadata",
     "get_confidence_score",
     "dict_to_element_metadata",
+    "FallbackManager",
+    "get_element_metadata_with_fallback",
+    "FallbackConfig",
+    "MetricsCollector",
 ]
